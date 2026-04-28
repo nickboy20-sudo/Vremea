@@ -868,7 +868,7 @@ function buildWindyIframe() {
     `&detailLat=${LAT}&detailLon=${LON}&width=650&height=480&zoom=7` +
     `&level=surface&overlay=${currentWindyLayer}&product=ecmwf` +
     `&menu=&message=true&marker=true&calendar=now&pressure=` +
-    `&type=map&location=coordinates&detail=&metricWind=default&metricTemp=%C2%B0C&radarRange=-1`;
+    `&type=map&location=coordinates&detail=&metricWind=km/h&metricTemp=%C2%B0C&radarRange=-1`;
   return `<iframe id="windyFrame" src="${src}" allowfullscreen onload="onWindyLoad()"></iframe>`;
 }
 
