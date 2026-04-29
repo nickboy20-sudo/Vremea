@@ -240,6 +240,7 @@
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
   .current-cond { font-size: 14px; color: var(--text2); text-align: right; margin-top: 4px; }
+  .current-icon {font-size: 48px; line-height: 1;text-align: right; margin-bottom: 4px; filter: drop-shadow(0 0 12px rgba(255,255,255,0.2));}
 
   /* ── Sun arc ── */
   .sun-section {
@@ -1026,7 +1027,7 @@ function render(data) {
         <div class="location-sub">${COUNTRY} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})}</div>
       </div>
       <div class="now-temp">
-        <div class="current-temp">${Math.round(cw.temperature)}°</div>
+        <div class="current-temp">${Math.round(cw.temperature)}°<span style="font-size:52px; vertical-align:middle; margin-left:8px; -webkit-text-fill-color: initial">${icon(cw.weathercode||d.weathercode[0])}</span></div>
         <div class="current-cond">${desc(cw.weathercode||d.weathercode[0])}</div>
       </div>
     </div>
