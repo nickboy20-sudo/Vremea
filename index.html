@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
- <link rel="icon" type="image/png" href="cloudy.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vremea</title>
+<title>Prognoză Meteo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -276,7 +275,14 @@
     cursor: default;
   }
   .hour-card.active { background: rgba(91,156,246,0.15); border-color: rgba(91,156,246,0.4); }
+  .hour-card.now { border-color: rgba(245,200,66,0.5); background: rgba(245,200,66,0.08); }
+  .hour-card.now .hour-time { color: var(--gold); font-weight: 500; }
   .hour-card:hover { background: var(--card-hover); transform: translateY(-2px); }
+  .hour-day-sep {
+    flex-shrink: 0; align-self: center;
+    color: var(--text3); font-size: 18px; line-height: 1;
+    padding: 0 2px; user-select: none;
+  }
   .hour-time { font-size: 11px; color: var(--text3); margin-bottom: 8px; font-family: var(--font-mono); }
   .hour-icon { font-size: 18px; margin-bottom: 6px; line-height: 1; }
   .hour-temp { font-size: 15px; font-weight: 500; }
@@ -767,18 +773,55 @@ function getHourlyForDay(data, dayIndex) {
       temp: Math.round(data.hourly.temperature_2m[i]),
       prec: +(data.hourly.precipitation[i]).toFixed(1),
       code: data.hourly.weathercode[i],
-      feel: Math.round(data.hourly.apparent_temperature[i])
+      feel: Math.round(data.hourly.apparent_temperature[i]),
+      isNow: false
     }));
 }
 
+
+function getHourlyFromNow(data, count = 24) {
+  const now = new Date();
+  // Build "YYYY-MM-DDTHH" string in local time to match API times
+  const pad = n => String(n).padStart(2,'0');
+  const localIso = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}`;
+
+  let startIdx = data.hourly.time.findIndex(t => t.startsWith(localIso));
+  // Fallback: first entry not yet passed
+  if (startIdx === -1) {
+    startIdx = data.hourly.time.findIndex(t => new Date(t) >= now);
+  }
+  if (startIdx === -1) startIdx = 0;
+
+  const result = [];
+  for (let i = startIdx; i < startIdx + count && i < data.hourly.time.length; i++) {
+    // Add a day-separator label when crossing midnight
+    const prevDate = i > startIdx ? data.hourly.time[i-1].slice(0,10) : null;
+    const thisDate = data.hourly.time[i].slice(0,10);
+    result.push({
+      hour: data.hourly.time[i].slice(11,16),
+      temp: Math.round(data.hourly.temperature_2m[i]),
+      prec: +(data.hourly.precipitation[i]).toFixed(1),
+      code: data.hourly.weathercode[i],
+      feel: Math.round(data.hourly.apparent_temperature[i]),
+      isNow: i === startIdx,
+      newDay: prevDate && thisDate !== prevDate ? thisDate : null
+    });
+  }
+  return result;
+}
+
 function buildHourlyRow(hours) {
-  return hours.map((h, i) => `
-    <div class="hour-card ${i===12?'active':''}">
-      <div class="hour-time">${h.hour}</div>
+  return hours.map((h) => {
+    const sep = h.newDay
+      ? `<div class="hour-day-sep">›</div>`
+      : '';
+    return sep + `<div class="hour-card ${h.isNow ? 'active now' : ''}">
+      <div class="hour-time">${h.isNow ? 'Acum' : h.hour}</div>
       <div class="hour-icon">${icon(h.code)}</div>
       <div class="hour-temp">${h.temp}°</div>
       ${h.prec>0 ? `<div class="hour-prec">${h.prec}mm</div>` : '<div class="hour-prec"> </div>'}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function buildDayCards(data) {
@@ -1007,10 +1050,10 @@ function selectDay(i) {
   document.querySelector('.sun-set-time').textContent = formatTime(sunData.sunset[i]);
   document.querySelector('.sun-duration').textContent = daylight(sunData.sunrise[i], sunData.sunset[i]);
   document.querySelector('.sun-arc-wrap').innerHTML = drawSunArc(sunData.sunrise[i], sunData.sunset[i]);
-  const hours = getHourlyForDay(allData, i);
+  const hours = i === 0 ? getHourlyFromNow(allData) : getHourlyForDay(allData, i);
   document.querySelector('.hourly-scroll').innerHTML = buildHourlyRow(hours);
   document.querySelector('.hourly-chart-title').textContent =
-    `Orar — ${i===0?'Azi':shortDate(allData.daily.time[i])}`;
+    `Orar — ${i===0?'Azi (din ora curentă)':shortDate(allData.daily.time[i])}`;
   drawHourlyChart(hours);
 }
 
@@ -1018,7 +1061,7 @@ function render(data) {
   allData = data;
   const d = data.daily;
   const cw = data.current_weather;
-  const todayHours = getHourlyForDay(data, 0);
+  const todayHours = getHourlyFromNow(data);
 
   const html = `
     <div class="header">
