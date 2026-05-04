@@ -385,7 +385,48 @@
     color: var(--text3); margin-bottom: 16px;
   }
   .chart-wrap { position: relative; width: 100%; height: 180px; }
-
+/* ── Wind Chart Card ── */
+.wind-chart-card {
+  background: linear-gradient(135deg, rgba(56,217,196,0.06) 0%, rgba(32,184,166,0.03) 100%);
+  border: 1px solid rgba(56,217,196,0.2);
+  border-radius: var(--r2); padding: 20px 20px 14px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s 0.28s ease both;
+  position: relative; overflow: hidden;
+}
+.wind-chart-card::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(56,217,196,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.wind-chart-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+}
+.wind-chart-subtitle {
+  font-size: 10px; color: var(--text3); letter-spacing: 0.5px; margin-top: 2px;
+}
+.wind-now-badge {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(56,217,196,0.1); border: 1px solid rgba(56,217,196,0.25);
+  border-radius: 12px; padding: 8px 14px;
+}
+.wind-compass {
+  font-size: 22px; line-height: 1; color: var(--teal); display: inline-block;
+  filter: drop-shadow(0 0 6px rgba(56,217,196,0.5));
+  transition: transform 0.5s ease;
+}
+.wind-now-val {
+  font-family: var(--font-mono); font-size: 22px; font-weight: 300;
+  color: var(--teal); line-height: 1;
+}
+.wind-now-val span { font-size: 12px; color: rgba(56,217,196,0.6); margin-left: 2px; }
+.wind-now-dir { font-size: 11px; color: var(--text3); margin-top: 2px;
+  letter-spacing: 1px; text-transform: uppercase; }
+.wind-chart-wrap { position: relative; width: 100%; height: 180px; }
+ 
   /* ── Hourly detail chart ── */
   .hourly-chart-card {
     background: var(--card); border: 1px solid var(--border);
@@ -393,6 +434,7 @@
     margin-bottom: 24px;
     animation: fadeUp 0.6s 0.3s ease both;
   }
+
   .hourly-chart-wrap { position: relative; width: 100%; height: 160px; }
 
   /* ── Windy Radar Map ── */
@@ -554,7 +596,7 @@ let COUNTRY = 'Romania';
 
 let allData = null;
 let selectedDay = 0;
-let precipChart = null, tempChart = null, hourlyChart = null;
+let precipChart = null, tempChart = null, hourlyChart = null, windChart = null;
 let currentWindyLayer = 'rain';
 let searchTimeout = null;
 let focusedSuggestion = -1;
@@ -696,8 +738,8 @@ function renderSuggestions(results) {
 // ── Weather API ──
 async function fetchWeather() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-    `&hourly=temperature_2m,precipitation,weathercode,apparent_temperature` +
-    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours` +
+    `&hourly=temperature_2m,precipitation,weathercode,apparent_temperature,windspeed_10m,winddirection_10m` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours,windspeed_10m_max` +
     `&timezone=${encodeURIComponent(TZ)}&forecast_days=10&current_weather=true`;
   const r = await fetch(url);
   if (!r.ok) throw new Error('API error');
@@ -725,6 +767,13 @@ function daylight(rise, set) {
   const h = Math.floor(diff/60), m = Math.round(diff%60);
   return `${h}h ${m}m lumină naturală`;
 }
+
+ function windDirLabel(deg) {
+  if (deg == null) return '—';
+  const dirs = ['N','NE','E','SE','S','SV','V','NV'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+ 
 function shortDay(iso) {
   return new Date(iso).toLocaleDateString('ro-RO', {weekday:'short'});
 }
@@ -771,6 +820,8 @@ function getHourlyForDay(data, dayIndex) {
     .map(({i}) => ({
       hour: data.hourly.time[i].slice(11,16),
       temp: Math.round(data.hourly.temperature_2m[i]),
+      wind: +(data.hourly.windspeed_10m[i]||0).toFixed(1),
+      wdir: data.hourly.winddirection_10m[i]||0,
       prec: +(data.hourly.precipitation[i]).toFixed(1),
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
@@ -801,6 +852,8 @@ function getHourlyFromNow(data, count = 24) {
       hour: data.hourly.time[i].slice(11,16),
       temp: Math.round(data.hourly.temperature_2m[i]),
       prec: +(data.hourly.precipitation[i]).toFixed(1),
+      wind: +(data.hourly.windspeed_10m[i]||0).toFixed(1),
+      wdir: data.hourly.winddirection_10m[i]||0,
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
       isNow: i === startIdx,
@@ -808,6 +861,76 @@ function getHourlyFromNow(data, count = 24) {
     });
   }
   return result;
+}
+
+ function drawWindChart(hours, currentWind) {
+  destroyChart(windChart);
+  const ctx = document.getElementById('windChart').getContext('2d');
+  const labels = hours.map(h => h.hour);
+  const vals   = hours.map(h => h.wind);
+  const maxVal = Math.max(...vals, currentWind || 0);
+
+  // Gradient fill teal
+  const grad = ctx.createLinearGradient(0, 0, 0, 200);
+  grad.addColorStop(0, 'rgba(56,217,196,0.28)');
+  grad.addColorStop(1, 'rgba(56,217,196,0.01)');
+
+  windChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Viteză vânt',
+          data: vals,
+          borderColor: '#38d9c4',
+          backgroundColor: grad,
+          // punctul maxim apare galben
+          pointBackgroundColor: vals.map(v => v === Math.max(...vals) ? '#f5c842' : '#38d9c4'),
+          pointRadius: vals.map(v => v === Math.max(...vals) ? 4 : 2),
+          borderWidth: 2, tension: 0.45, fill: true, yAxisID: 'y'
+        },
+        {
+          // linie punctată galbenă = viteza actuală (referință fixă)
+          label: 'Acum',
+          data: labels.map(() => currentWind),
+          borderColor: 'rgba(245,200,66,0.55)',
+          borderWidth: 1.5, borderDash: [5, 4],
+          pointRadius: 0, fill: false, tension: 0, yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,12,30,0.92)',
+          titleColor: '#e8eaf6', bodyColor: '#c6d4f0',
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 1) return `Acum: ${ctx.parsed.y} km/h`;
+              return `Vânt: ${ctx.parsed.y} km/h`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(232,234,246,0.4)', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 12 }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(56,217,196,0.75)', font: { family: 'Outfit', size: 11 },
+            callback: v => v + ' km/h' },
+          beginAtZero: true,
+          suggestedMax: Math.ceil((maxVal + 5) / 5) * 5
+        }
+      }
+    }
+  });
 }
 
 function buildHourlyRow(hours) {
@@ -1055,6 +1178,7 @@ function selectDay(i) {
   document.querySelector('.hourly-chart-title').textContent =
     `Orar — ${i===0?'Azi (din ora curentă)':shortDate(allData.daily.time[i])}`;
   drawHourlyChart(hours);
+ if (allData) drawWindChart(hours, Math.round(allData.current_weather.windspeed));
 }
 
 function render(data) {
@@ -1099,6 +1223,25 @@ function render(data) {
       </div>
     </div>
 
+    <div class="wind-chart-card">
+  <div class="wind-chart-header">
+    <div>
+      <div class="chart-title" style="margin-bottom:4px">Viteza vântului · 24h</div>
+      <div class="wind-chart-subtitle">Linia punctată galbenă = viteza actuală</div>
+    </div>
+    <div class="wind-now-badge">
+      <!-- săgeata rotită cu unghiul real al vântului -->
+      <div class="wind-compass" id="windCompass"
+           style="transform:rotate(${cw.winddirection}deg)">↑</div>
+      <div>
+        <div class="wind-now-val">${Math.round(cw.windspeed)} <span>km/h</span></div>
+        <div class="wind-now-dir">${windDirLabel(cw.winddirection)}</div>
+      </div>
+    </div>
+  </div>
+  <div class="wind-chart-wrap"><canvas id="windChart"></canvas></div>
+</div>
+
     <div class="sun-section">
       <div class="sun-info" style="align-items:flex-start">
         <div class="sun-label">Răsărit</div>
@@ -1129,6 +1272,7 @@ function render(data) {
     drawPrecipChart(data);
     drawTempChart(data);
     drawHourlyChart(todayHours);
+    drawWindChart(todayHours, Math.round(cw.windspeed));
   }, 80);
 }
 
