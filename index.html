@@ -385,7 +385,8 @@
     color: var(--text3); margin-bottom: 16px;
   }
   .chart-wrap { position: relative; width: 100%; height: 180px; }
-/* ── Wind Chart Card ── */
+
+  /* ── Wind Chart Card ── */
 .wind-chart-card {
   background: linear-gradient(135deg, rgba(56,217,196,0.06) 0%, rgba(32,184,166,0.03) 100%);
   border: 1px solid rgba(56,217,196,0.2);
@@ -426,7 +427,7 @@
 .wind-now-dir { font-size: 11px; color: var(--text3); margin-top: 2px;
   letter-spacing: 1px; text-transform: uppercase; }
 .wind-chart-wrap { position: relative; width: 100%; height: 180px; }
- 
+
   /* ── Hourly detail chart ── */
   .hourly-chart-card {
     background: var(--card); border: 1px solid var(--border);
@@ -434,7 +435,6 @@
     margin-bottom: 24px;
     animation: fadeUp 0.6s 0.3s ease both;
   }
-
   .hourly-chart-wrap { position: relative; width: 100%; height: 160px; }
 
   /* ── Windy Radar Map ── */
@@ -768,12 +768,12 @@ function daylight(rise, set) {
   return `${h}h ${m}m lumină naturală`;
 }
 
- function windDirLabel(deg) {
+function windDirLabel(deg) {
   if (deg == null) return '—';
   const dirs = ['N','NE','E','SE','S','SV','V','NV'];
   return dirs[Math.round(deg / 45) % 8];
 }
- 
+
 function shortDay(iso) {
   return new Date(iso).toLocaleDateString('ro-RO', {weekday:'short'});
 }
@@ -820,15 +820,15 @@ function getHourlyForDay(data, dayIndex) {
     .map(({i}) => ({
       hour: data.hourly.time[i].slice(11,16),
       temp: Math.round(data.hourly.temperature_2m[i]),
+      prec: +(data.hourly.precipitation[i]).toFixed(1),
+      // ADĂUGAT în obiectul returnat:
       wind: +(data.hourly.windspeed_10m[i]||0).toFixed(1),
       wdir: data.hourly.winddirection_10m[i]||0,
-      prec: +(data.hourly.precipitation[i]).toFixed(1),
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
       isNow: false
     }));
 }
-
 
 function getHourlyFromNow(data, count = 24) {
   const now = new Date();
@@ -863,7 +863,7 @@ function getHourlyFromNow(data, count = 24) {
   return result;
 }
 
- function drawWindChart(hours, currentWind) {
+function drawWindChart(hours, currentWind) {
   destroyChart(windChart);
   const ctx = document.getElementById('windChart').getContext('2d');
   const labels = hours.map(h => h.hour);
@@ -965,7 +965,7 @@ function buildDayCards(data) {
 }
 
 function buildPrecipTotalCard(data) {
-  const sums = data.daily.precipitation_sum.map(v => +(v||0));
+  const sums = getRemainingPrecipPerDay(data);
   const total = +sums.reduce((a,b)=>a+b,0).toFixed(1);
   const rainyDays = sums.filter(v => v >= 0.1).length;
   // context: 50mm/10d = moderate, 100mm = heavy
@@ -982,7 +982,7 @@ function buildPrecipTotalCard(data) {
     <div class="precip-total-card">
       <div class="precip-total-icon">${emoji}</div>
       <div class="precip-total-info">
-        <div class="precip-total-label">Precipitații totale · 10 zile</div>
+        <div class="precip-total-label">Precipitații rămase · 10 zile</div>
         <div class="precip-total-value">${total}<span>mm</span></div>
         <div class="precip-total-sub">${context}</div>
       </div>
@@ -1067,11 +1067,35 @@ function setWindyLayer(layer) {
 // ── Charts ──
 function destroyChart(ref) { if (ref) { try { ref.destroy(); } catch(e){} } }
 
+// Returns remaining precipitation per day: for today uses hourly from current hour onwards,
+// for future days uses full daily sum.
+function getRemainingPrecipPerDay(data) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const currentHourStr = `${todayStr}T${pad(now.getHours())}`;
+
+  return data.daily.time.map((d, i) => {
+    if (i === 0) {
+      // Sum only hourly precipitation from current hour onwards, within today
+      let remaining = 0;
+      for (let j = 0; j < data.hourly.time.length; j++) {
+        const t = data.hourly.time[j];
+        if (t.startsWith(todayStr) && t >= currentHourStr) {
+          remaining += data.hourly.precipitation[j] || 0;
+        }
+      }
+      return +remaining.toFixed(1);
+    }
+    return +(data.daily.precipitation_sum[i]||0).toFixed(1);
+  });
+}
+
 function drawPrecipChart(data) {
   destroyChart(precipChart);
   const ctx = document.getElementById('precipChart').getContext('2d');
   const labels = data.daily.time.map((d,i) => i===0?'Azi':shortDay(d));
-  const vals = data.daily.precipitation_sum.map(v => +(v||0).toFixed(1));
+  const vals = getRemainingPrecipPerDay(data);
   precipChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -1178,7 +1202,7 @@ function selectDay(i) {
   document.querySelector('.hourly-chart-title').textContent =
     `Orar — ${i===0?'Azi (din ora curentă)':shortDate(allData.daily.time[i])}`;
   drawHourlyChart(hours);
- if (allData) drawWindChart(hours, Math.round(allData.current_weather.windspeed));
+  if (allData) drawWindChart(hours, Math.round(allData.current_weather.windspeed));
 }
 
 function render(data) {
@@ -1214,7 +1238,7 @@ function render(data) {
 
     <div class="charts-row">
       <div class="chart-card">
-        <div class="chart-title">Precipitații · 10 zile (mm)</div>
+        <div class="chart-title">Precipitații rămase · 10 zile (mm)</div>
         <div class="chart-wrap"><canvas id="precipChart"></canvas></div>
       </div>
       <div class="chart-card">
@@ -1264,10 +1288,9 @@ function render(data) {
   setTimeout(() => {
     const fill = document.getElementById('precipBarFill');
     if (fill) {
-      const pct = fill.parentElement.nextElementSibling?.textContent?.match(/(\d+)%/)?.[1] || '0';
-      const sums = data.daily.precipitation_sum.map(v => +(v||0));
-      const total = sums.reduce((a,b)=>a+b,0);
-      fill.style.width = Math.min(100, Math.round(total / 100 * 100)) + '%';
+      const remainingSums = getRemainingPrecipPerDay(data);
+      const total = remainingSums.reduce((a,b)=>a+b,0);
+      fill.style.width = Math.min(100, Math.round(total)) + '%';
     }
     drawPrecipChart(data);
     drawTempChart(data);
