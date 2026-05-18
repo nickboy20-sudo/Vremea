@@ -553,9 +553,204 @@
     to { opacity: 1; transform: translateY(0); }
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Weather Background ── */
+  #weather-bg {
+    position: fixed; inset: 0; z-index: 0;
+    transition: background 2s ease;
+    overflow: hidden;
+  }
+  /* Dark overlay so text/icons always stay readable */
+  #weather-bg::after {
+    content: '';
+    position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(180deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.60) 100%);
+    pointer-events: none;
+  }
+  /* Sunny day – kept darker so text is legible */
+  #weather-bg.bg-sunny {
+    background: linear-gradient(180deg, #062770 0%, #0d4baa 20%, #1568d0 45%, #1e7fde 70%, #3494e0 100%);
+  }
+  /* Clear night */
+  #weather-bg.bg-sunny.night {
+    background: linear-gradient(180deg, #01020a 0%, #020614 25%, #030d24 55%, #08173a 100%);
+  }
+  /* Partly cloudy day */
+  #weather-bg.bg-partly-cloudy {
+    background: linear-gradient(180deg, #0e3870 0%, #1a5496 30%, #2a74bc 60%, #4a8fd0 100%);
+  }
+  /* Partly cloudy night */
+  #weather-bg.bg-partly-cloudy.night {
+    background: linear-gradient(180deg, #030812 0%, #07122a 35%, #0e1e3e 70%, #162540 100%);
+  }
+  /* Overcast */
+  #weather-bg.bg-overcast {
+    background: linear-gradient(180deg, #1e2b38 0%, #2e404f 25%, #3f5669 55%, #607585 80%, #8098a8 100%);
+  }
+  /* Fog */
+  #weather-bg.bg-fog {
+    background: linear-gradient(180deg, #3d4a56 0%, #5a6878 35%, #7a8a96 65%, #a0adb8 85%, #c5cfd8 100%);
+  }
+  /* Rain / Drizzle */
+  #weather-bg.bg-rain {
+    background: linear-gradient(180deg, #0a1520 0%, #122030 25%, #1a2d40 55%, #223550 80%, #2d4060 100%);
+  }
+  /* Snow */
+  #weather-bg.bg-snow {
+    background: linear-gradient(180deg, #5a7a95 0%, #7a9ab5 25%, #a0b8c8 55%, #c8d8e4 80%, #e4eef5 100%);
+  }
+  /* Thunderstorm */
+  #weather-bg.bg-storm {
+    background: linear-gradient(180deg, #06090f 0%, #0d1420 30%, #131c2d 60%, #1a2035 100%);
+  }
+
+  /* ── Sun orb (clear day) ── */
+  .sun-orb {
+    position: absolute;
+    width: 180px; height: 180px; border-radius: 50%;
+    top: 40px; right: 12%;
+    background: radial-gradient(circle, rgba(255,230,60,0.85) 0%, rgba(255,190,20,0.5) 40%, rgba(255,140,0,0.15) 70%, transparent 90%);
+    filter: blur(4px);
+    animation: sun-pulse 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes sun-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+  /* sun rays */
+  .sun-rays {
+    position: absolute;
+    width: 220px; height: 220px; border-radius: 50%;
+    top: 20px; right: calc(12% - 20px);
+    background: radial-gradient(circle, rgba(255,220,0,0.12) 30%, rgba(255,180,0,0.06) 60%, transparent 80%);
+    animation: sun-pulse 5s ease-in-out infinite;
+    filter: blur(12px);
+    pointer-events: none;
+  }
+
+  /* ── Moon (clear night) ── */
+  .moon-orb {
+    position: absolute;
+    width: 90px; height: 90px; border-radius: 50%;
+    top: 70px; right: 14%;
+    background: radial-gradient(circle, rgba(210,225,255,0.9) 30%, rgba(160,185,240,0.4) 65%, transparent 85%);
+    filter: blur(2px);
+    animation: moon-glow 7s ease-in-out infinite;
+    pointer-events: none;
+    box-shadow: 0 0 40px rgba(160,185,240,0.3);
+  }
+  @keyframes moon-glow {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+  }
+  /* stars */
+  .star {
+    position: absolute;
+    width: 2px; height: 2px; border-radius: 50%;
+    background: rgba(220,230,255,0.8);
+    animation: star-twinkle linear infinite;
+  }
+  @keyframes star-twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+
+  /* ── Clouds ── */
+  .cloud {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(18px);
+    opacity: 0.35;
+    animation: cloud-drift linear infinite;
+    pointer-events: none;
+  }
+  @keyframes cloud-drift {
+    0% { transform: translateX(-80px); }
+    100% { transform: translateX(calc(100vw + 80px)); }
+  }
+
+  /* ── Rain drops ── */
+  .rain-container {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  }
+  .rain-drop {
+    position: absolute;
+    top: -8%;
+    width: 1.5px;
+    background: linear-gradient(transparent, rgba(180,220,255,0.55));
+    border-radius: 2px;
+    animation: rain-fall linear infinite;
+  }
+  @keyframes rain-fall {
+    0% { top: -8%; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 0.7; }
+    100% { top: 108%; opacity: 0; }
+  }
+
+  /* ── Snow flakes ── */
+  .snow-container {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  }
+  .snow-flake {
+    position: absolute;
+    top: -5%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    animation: snow-fall linear infinite;
+    filter: blur(0.5px);
+  }
+  @keyframes snow-fall {
+    0% { top: -5%; transform: translateX(0) rotate(0deg); opacity: 0; }
+    8% { opacity: 0.9; }
+    90% { opacity: 0.7; }
+    100% { top: 108%; transform: translateX(60px) rotate(360deg); opacity: 0; }
+  }
+
+  /* ── Lightning (storm) ── */
+  .lightning-flash {
+    position: absolute; inset: 0;
+    background: rgba(200,220,255,0.08);
+    opacity: 0;
+    animation: lightning-strike 9s ease infinite;
+    pointer-events: none;
+  }
+  @keyframes lightning-strike {
+    0%, 87%, 92%, 96%, 100% { opacity: 0; }
+    88%, 90% { opacity: 1; background: rgba(200,220,255,0.18); }
+    93%, 95% { opacity: 0.6; background: rgba(200,220,255,0.1); }
+  }
+  .lightning-bolt {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+    animation: bolt-flash 9s ease infinite;
+    pointer-events: none;
+  }
+  @keyframes bolt-flash {
+    0%, 86%, 91%, 100% { opacity: 0; }
+    87%, 89% { opacity: 1; }
+  }
+
+  /* ── Fog particles ── */
+  .fog-layer {
+    position: absolute; left: -10%; width: 120%; height: 40%;
+    background: linear-gradient(90deg, transparent, rgba(200,215,225,0.12) 30%, rgba(220,230,235,0.18) 60%, transparent);
+    filter: blur(25px);
+    border-radius: 50%;
+    animation: fog-drift linear infinite;
+    pointer-events: none;
+  }
+  @keyframes fog-drift {
+    0% { transform: translateX(-15%); opacity: 0.4; }
+    50% { opacity: 0.8; }
+    100% { transform: translateX(15%); opacity: 0.4; }
+  }
 </style>
 </head>
 <body>
+<div id="weather-bg"></div>
 <div class="noise"></div>
 <div class="glow-orb a"></div>
 <div class="glow-orb b"></div>
@@ -1211,6 +1406,9 @@ function render(data) {
   const cw = data.current_weather;
   const todayHours = getHourlyFromNow(data);
 
+  // Update dynamic weather background
+  updateWeatherBg(cw.weathercode ?? d.weathercode[0], cw.is_day ?? 1);
+
   const html = `
     <div class="header">
       <div>
@@ -1297,6 +1495,128 @@ function render(data) {
     drawHourlyChart(todayHours);
     drawWindChart(todayHours, Math.round(cw.windspeed));
   }, 80);
+}
+
+// ── Weather Background ──
+function getWeatherBgClass(code, isDay) {
+  if ([95,96,99].includes(code)) return 'bg-storm';
+  if ([71,73,75,77,85,86].includes(code)) return 'bg-snow';
+  if ([51,53,55,61,63,65,80,81,82].includes(code)) return 'bg-rain';
+  if ([45,48].includes(code)) return 'bg-fog';
+  if (code === 3) return 'bg-overcast';
+  if (code === 2) return 'bg-partly-cloudy';
+  if (code === 0 || code === 1) return 'bg-sunny';
+  return 'bg-overcast';
+}
+
+function buildRain(count) {
+  let html = '<div class="rain-container">';
+  for (let i = 0; i < count; i++) {
+    const left = Math.random() * 100;
+    const dur  = 0.5 + Math.random() * 0.8;
+    const delay = Math.random() * 2;
+    const h    = 60 + Math.random() * 80;
+    html += `<div class="rain-drop" style="left:${left}%;height:${h}px;animation-duration:${dur}s;animation-delay:-${delay}s;opacity:${0.3+Math.random()*0.5}"></div>`;
+  }
+  return html + '</div>';
+}
+
+function buildSnow(count) {
+  let html = '<div class="snow-container">';
+  for (let i = 0; i < count; i++) {
+    const left = Math.random() * 100;
+    const dur  = 4 + Math.random() * 6;
+    const delay = Math.random() * 8;
+    const sz   = 3 + Math.random() * 5;
+    html += `<div class="snow-flake" style="left:${left}%;width:${sz}px;height:${sz}px;animation-duration:${dur}s;animation-delay:-${delay}s"></div>`;
+  }
+  return html + '</div>';
+}
+
+function buildClouds(color, count) {
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const top  = 5 + Math.random() * 35;
+    const sz   = 180 + Math.random() * 260;
+    const dur  = 60 + Math.random() * 80;
+    const delay = Math.random() * -80;
+    html += `<div class="cloud" style="top:${top}%;width:${sz}px;height:${sz*0.6}px;background:${color};animation-duration:${dur}s;animation-delay:${delay}s"></div>`;
+  }
+  return html;
+}
+
+function buildStars(count) {
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const top  = Math.random() * 70;
+    const left = Math.random() * 100;
+    const dur  = 2 + Math.random() * 4;
+    const delay = Math.random() * -4;
+    const sz   = Math.random() < 0.2 ? 3 : 2;
+    html += `<div class="star" style="top:${top}%;left:${left}%;width:${sz}px;height:${sz}px;animation-duration:${dur}s;animation-delay:${delay}s"></div>`;
+  }
+  return html;
+}
+
+function updateWeatherBg(code, isDay) {
+  const bg = document.getElementById('weather-bg');
+  const cls = getWeatherBgClass(code, isDay);
+  bg.className = cls + (isDay ? '' : ' night');
+
+  // Sync body/html background so mobile overscroll doesn't show black
+  const bgMap = {
+    'bg-sunny':         isDay ? '#062770' : '#01020a',
+    'bg-partly-cloudy': isDay ? '#0e3870' : '#030812',
+    'bg-overcast':      '#1e2b38',
+    'bg-fog':           '#3d4a56',
+    'bg-rain':          '#0a1520',
+    'bg-snow':          '#5a7a95',
+    'bg-storm':         '#06090f',
+  };
+  const bodyColor = bgMap[cls] || '#07091a';
+  document.documentElement.style.background = bodyColor;
+  document.body.style.background = bodyColor;
+
+  let inner = '';
+
+  if (cls === 'bg-sunny') {
+    if (isDay) {
+      inner = '<div class="sun-rays"></div><div class="sun-orb"></div>'
+             + buildClouds('rgba(255,255,255,0.55)', 2);
+    } else {
+      inner = '<div class="moon-orb"></div>' + buildStars(80);
+    }
+  } else if (cls === 'bg-partly-cloudy') {
+    if (isDay) {
+      inner = '<div class="sun-orb" style="opacity:0.5;width:130px;height:130px;top:60px"></div>'
+             + buildClouds('rgba(255,255,255,0.6)', 5);
+    } else {
+      inner = '<div class="moon-orb" style="opacity:0.5"></div>'
+             + buildStars(40)
+             + buildClouds('rgba(80,100,140,0.5)', 4);
+    }
+  } else if (cls === 'bg-overcast') {
+    inner = buildClouds('rgba(120,140,160,0.55)', 7);
+  } else if (cls === 'bg-fog') {
+    for (let i = 0; i < 5; i++) {
+      const top = 10 + i * 18;
+      const dur = 18 + i * 7;
+      const delay = i * -5;
+      inner += `<div class="fog-layer" style="top:${top}%;animation-duration:${dur}s;animation-delay:${delay}s;animation-direction:${i%2?'reverse':'normal'}"></div>`;
+    }
+  } else if (cls === 'bg-rain') {
+    inner = buildClouds('rgba(60,80,110,0.7)', 6) + buildRain(80);
+  } else if (cls === 'bg-snow') {
+    inner = buildClouds('rgba(160,180,200,0.5)', 5) + buildSnow(60);
+  } else if (cls === 'bg-storm') {
+    inner = buildClouds('rgba(30,40,60,0.8)', 8)
+           + buildRain(100)
+           + '<div class="lightning-flash"></div>'
+           + `<svg class="lightning-bolt" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+               <polyline points="220,0 180,240 230,240 160,480" fill="none" stroke="rgba(200,220,255,0.9)" stroke-width="3" stroke-linejoin="round"/>
+             </svg>`;
+  }
+  bg.innerHTML = inner;
 }
 
 // ── Boot ──
