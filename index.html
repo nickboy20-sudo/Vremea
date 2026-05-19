@@ -818,8 +818,31 @@ const WMO_ICON = {
   85:'🌨️',86:'❄️',
   95:'⛈️',96:'⛈️',99:'⛈️'
 };
+// Iconițe de noapte (lună în loc de soare pentru cer senin/parțial noros)
+const WMO_ICON_NIGHT = {
+  0:'🌕',1:'🌙',2:'🌙',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌧️',
+  61:'🌧️',63:'🌧️',65:'⛈️',
+  71:'❄️',73:'🌨️',75:'❄️',77:'🌨️',
+  80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'🌨️',86:'❄️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
 function icon(code){ return WMO_ICON[code]||'🌡️'; }
+// Returnează iconița corectă în funcție de zi/noapte
+function iconForTime(code, isDay){ return isDay ? (WMO_ICON[code]||'🌡️') : (WMO_ICON_NIGHT[code]||WMO_ICON[code]||'🌡️'); }
 function desc(code){ return WMO[code]||'—'; }
+
+// Determină dacă un slot orar este zi sau noapte folosind sunrise/sunset din zilele API
+function getHourIsDay(data, timeStr) {
+  const dateStr = timeStr.slice(0, 10);
+  const dayIdx = data.daily.time.indexOf(dateStr);
+  if (dayIdx < 0) return true; // fallback
+  const rise = data.daily.sunrise[dayIdx]; // ex: "2025-05-19T06:04"
+  const set  = data.daily.sunset[dayIdx];  // ex: "2025-05-19T20:38"
+  return timeStr >= rise && timeStr < set;
+}
 
 // ── Search / Geocoding ──
 const searchInput = document.getElementById('searchInput');
@@ -1021,6 +1044,7 @@ function getHourlyForDay(data, dayIndex) {
       wdir: data.hourly.winddirection_10m[i]||0,
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
+      isDay: getHourIsDay(data, data.hourly.time[i]),
       isNow: false
     }));
 }
@@ -1051,6 +1075,7 @@ function getHourlyFromNow(data, count = 24) {
       wdir: data.hourly.winddirection_10m[i]||0,
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
+      isDay: getHourIsDay(data, data.hourly.time[i]),
       isNow: i === startIdx,
       newDay: prevDate && thisDate !== prevDate ? thisDate : null
     });
@@ -1135,7 +1160,7 @@ function buildHourlyRow(hours) {
       : '';
     return sep + `<div class="hour-card ${h.isNow ? 'active now' : ''}">
       <div class="hour-time">${h.isNow ? 'Acum' : h.hour}</div>
-      <div class="hour-icon">${icon(h.code)}</div>
+      <div class="hour-icon">${iconForTime(h.code, h.isDay !== false)}</div>
       <div class="hour-temp">${h.temp}°</div>
       ${h.prec>0 ? `<div class="hour-prec">${h.prec}mm</div>` : '<div class="hour-prec"> </div>'}
     </div>`;
@@ -1416,7 +1441,7 @@ function render(data) {
         <div class="location-sub">${COUNTRY} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})}</div>
       </div>
       <div class="now-temp">
-        <div class="current-temp">${Math.round(cw.temperature)}°<span style="font-size:52px; vertical-align:middle; margin-left:8px; -webkit-text-fill-color: initial">${icon(cw.weathercode||d.weathercode[0])}</span></div>
+        <div class="current-temp">${Math.round(cw.temperature)}°<span style="font-size:52px; vertical-align:middle; margin-left:8px; -webkit-text-fill-color: initial">${iconForTime(cw.weathercode||d.weathercode[0], cw.is_day ?? 1)}</span></div>
         <div class="current-cond">${desc(cw.weathercode||d.weathercode[0])}</div>
       </div>
     </div>
