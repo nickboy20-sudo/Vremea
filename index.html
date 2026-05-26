@@ -84,7 +84,7 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 50px;
-    padding: 13px 20px 13px 46px;
+    padding: 13px 84px 13px 46px;
     color: var(--text);
     font-family: var(--font-data);
     font-size: 15px;
@@ -100,7 +100,7 @@
     box-shadow: 0 0 0 3px rgba(91,156,246,0.1);
   }
   .search-clear {
-    position: absolute; right: 16px;
+    position: absolute; right: 48px;
     background: none; border: none; cursor: pointer;
     color: var(--text3); font-size: 18px; line-height: 1;
     padding: 4px; border-radius: 50%;
@@ -108,19 +108,36 @@
     display: none;
   }
   .search-clear:hover { color: var(--text); }
+  .gps-btn {
+    position: absolute; right: 12px;
+    background: rgba(91,156,246,0.12);
+    border: 1px solid rgba(91,156,246,0.25);
+    cursor: pointer;
+    color: var(--blue);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  .gps-btn:hover {
+    background: rgba(91,156,246,0.2);
+    border-color: rgba(91,156,246,0.4);
+    transform: scale(1.05);
+  }
+  .gps-btn:active { transform: scale(0.95); }
+  .gps-btn.loading { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .search-suggestions {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  /* Fundal închis și complet opac pentru a bloca textul din spate */
   background: #0a0c1f;
   border: 1px solid rgba(91, 156, 246, 0.3);
   border-radius: 16px;
   overflow: hidden;
-  /* Z-index mare pentru a fi peste orice element din aplicație */
   z-index: 9999;
-  /* Umbră mai densă pentru a crea separare de fundal */
   box-shadow:
     0 15px 35px rgba(0,0,0,0.8),
     0 5px 15px rgba(0,0,0,0.5);
@@ -128,10 +145,9 @@
   animation: suggFadeIn 0.2s ease-out both;
 }
 
-/* Stil pentru elementele din listă pentru contrast mai bun */
 .suggestion-item {
   padding: 14px 16px;
-  background: #0a0c1f; /* Fundal solid și aici */
+  background: #0a0c1f;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -144,7 +160,7 @@
 }
 
 .suggestion-item:hover, .suggestion-item.focused {
-  background: #161b3d; /* O nuanță ușor mai deschisă la hover */
+  background: #161b3d;
 }
   @keyframes suggFadeIn {
     from { opacity: 0; transform: translateY(-6px) scale(0.99); }
@@ -549,6 +565,7 @@
     .windy-layer-btn { padding: 6px 12px; font-size: 12px; }
     .search-input { font-size: 16px; } /* prevent iOS zoom */
   }
+  @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
   }
@@ -756,7 +773,6 @@
 <div class="glow-orb b"></div>
 <div class="glow-orb c"></div>
 
-<!-- Search bar lives outside #app so it persists across re-renders -->
 <div class="app" style="padding-bottom: 0;">
   <div class="search-wrap" id="searchWrap">
     <div class="search-inner">
@@ -770,6 +786,13 @@
         spellcheck="false"
       >
       <button class="search-clear" id="searchClear" title="Șterge">✕</button>
+      <button class="gps-btn" id="gpsBtn" title="Folosește locația mea" aria-label="Locația mea">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+          <path d="M19.07 4.93l-2.83 2.83M7.76 16.24l-2.83 2.83M16.24 7.76l2.83-2.83M4.93 19.07l2.83-2.83"></path>
+        </svg>
+      </button>
     </div>
     <div class="search-suggestions" id="searchSuggestions"></div>
   </div>
@@ -792,7 +815,7 @@ let COUNTRY = 'Romania';
 let allData = null;
 let selectedDay = 0;
 let precipChart = null, tempChart = null, hourlyChart = null, windChart = null;
-let currentWindyLayer = 'rain';
+let currentWindyLayer = 'radar';
 let searchTimeout = null;
 let focusedSuggestion = -1;
 
@@ -848,6 +871,7 @@ function getHourIsDay(data, timeStr) {
 const searchInput = document.getElementById('searchInput');
 const searchClear = document.getElementById('searchClear');
 const searchSugg  = document.getElementById('searchSuggestions');
+const gpsBtn = document.getElementById('gpsBtn');
 
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim();
@@ -883,6 +907,80 @@ searchClear.addEventListener('click', () => {
   searchClear.style.display = 'none';
   closeSuggestions();
   searchInput.focus();
+});
+
+// GPS - ia locația și afișează numele real
+gpsBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    alert('Geolocația nu este suportată.');
+    return;
+  }
+  gpsBtn.classList.add('loading');
+  gpsBtn.disabled = true;
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    LAT = pos.coords.latitude;
+    LON = pos.coords.longitude;
+    
+    let foundName = false;
+    
+    // Încearcă 3 surse pentru numele locației
+    try {
+      // 1. Open-Meteo reverse
+      const r1 = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${LAT}&longitude=${LON}&language=ro`);
+      const d1 = await r1.json();
+      if (d1.results?.[0]) {
+        CITY = d1.results[0].name;
+        COUNTRY = d1.results[0].country || '';
+        TZ = d1.results[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        foundName = true;
+      }
+    } catch(e) {}
+    
+    if (!foundName) {
+      try {
+        // 2. Nominatim OSM - mult mai precis pentru sate/cartiere
+        const r2 = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${LAT}&lon=${LON}&format=jsonv2&accept-language=ro`, {
+          headers: { 'User-Agent': 'VremeaApp/1.0' }
+        });
+        const d2 = await r2.json();
+        if (d2.address) {
+          CITY = d2.address.city || d2.address.town || d2.address.village || d2.address.hamlet || d2.address.suburb || d2.address.municipality || 'Locația mea';
+          COUNTRY = d2.address.country || '';
+          TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          foundName = true;
+        }
+      } catch(e) {}
+    }
+    
+    if (!foundName) {
+      // 3. Fallback - BigDataCloud
+      try {
+        const r3 = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${LAT}&longitude=${LON}&localityLanguage=ro`);
+        const d3 = await r3.json();
+        CITY = d3.city || d3.locality || 'Locația mea';
+        COUNTRY = d3.countryName || '';
+        TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      } catch(e) {
+        CITY = 'Locația mea';
+        COUNTRY = '';
+        TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+    }
+    
+    searchInput.value = CITY + (COUNTRY ? `, ${COUNTRY}` : '');
+    searchClear.style.display = 'block';
+    closeSuggestions();
+    loadWeather();
+    
+    gpsBtn.classList.remove('loading');
+    gpsBtn.disabled = false;
+  }, (err) => {
+    gpsBtn.classList.remove('loading');
+    gpsBtn.disabled = false;
+    const msgs = {1:'Permisiune refuzată',2:'Locație indisponibilă',3:'Timeout'};
+    alert(msgs[err.code] || 'Nu s-a putut accesa locația');
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
 });
 
 document.addEventListener('click', e => {
@@ -1039,7 +1137,6 @@ function getHourlyForDay(data, dayIndex) {
       hour: data.hourly.time[i].slice(11,16),
       temp: Math.round(data.hourly.temperature_2m[i]),
       prec: +(data.hourly.precipitation[i]).toFixed(1),
-      // ADĂUGAT în obiectul returnat:
       wind: +(data.hourly.windspeed_10m[i]||0).toFixed(1),
       wdir: data.hourly.winddirection_10m[i]||0,
       code: data.hourly.weathercode[i],
@@ -1051,12 +1148,10 @@ function getHourlyForDay(data, dayIndex) {
 
 function getHourlyFromNow(data, count = 24) {
   const now = new Date();
-  // Build "YYYY-MM-DDTHH" string in local time to match API times
   const pad = n => String(n).padStart(2,'0');
   const localIso = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}`;
 
   let startIdx = data.hourly.time.findIndex(t => t.startsWith(localIso));
-  // Fallback: first entry not yet passed
   if (startIdx === -1) {
     startIdx = data.hourly.time.findIndex(t => new Date(t) >= now);
   }
@@ -1064,7 +1159,6 @@ function getHourlyFromNow(data, count = 24) {
 
   const result = [];
   for (let i = startIdx; i < startIdx + count && i < data.hourly.time.length; i++) {
-    // Add a day-separator label when crossing midnight
     const prevDate = i > startIdx ? data.hourly.time[i-1].slice(0,10) : null;
     const thisDate = data.hourly.time[i].slice(0,10);
     result.push({
@@ -1090,7 +1184,6 @@ function drawWindChart(hours, currentWind) {
   const vals   = hours.map(h => h.wind);
   const maxVal = Math.max(...vals, currentWind || 0);
 
-  // Gradient fill teal
   const grad = ctx.createLinearGradient(0, 0, 0, 200);
   grad.addColorStop(0, 'rgba(56,217,196,0.28)');
   grad.addColorStop(1, 'rgba(56,217,196,0.01)');
@@ -1105,13 +1198,11 @@ function drawWindChart(hours, currentWind) {
           data: vals,
           borderColor: '#38d9c4',
           backgroundColor: grad,
-          // punctul maxim apare galben
           pointBackgroundColor: vals.map(v => v === Math.max(...vals) ? '#f5c842' : '#38d9c4'),
           pointRadius: vals.map(v => v === Math.max(...vals) ? 4 : 2),
           borderWidth: 2, tension: 0.45, fill: true, yAxisID: 'y'
         },
         {
-          // linie punctată galbenă = viteza actuală (referință fixă)
           label: 'Acum',
           data: labels.map(() => currentWind),
           borderColor: 'rgba(245,200,66,0.55)',
@@ -1188,7 +1279,6 @@ function buildPrecipTotalCard(data) {
   const sums = getRemainingPrecipPerDay(data);
   const total = +sums.reduce((a,b)=>a+b,0).toFixed(1);
   const rainyDays = sums.filter(v => v >= 0.1).length;
-  // context: 50mm/10d = moderate, 100mm = heavy
   const pct = Math.min(100, Math.round(total / 100 * 100));
   let context = total === 0 ? 'Perioadă secetoasă — nicio ploaie așteptată'
     : total < 10 ? 'Precipitații foarte reduse așteptate'
@@ -1220,13 +1310,13 @@ function buildPrecipTotalCard(data) {
 
 function buildWindySection() {
   const layers = [
-    { key: 'rain', label: '🌧 Ploaie' },
+    { key: 'radar', label: '🌧 Ploaie' },
     { key: 'wind', label: '💨 Vânt' },
     { key: 'temp', label: '🌡 Temp' },
     { key: 'clouds', label: '☁️ Nori' },
   ];
   const btns = layers.map(l =>
-    `<button class="windy-layer-btn ${l.key===currentWindyLayer?'active':''}" onclick="setWindyLayer('${l.key}')">${l.label}</button>`
+    `<button class="windy-layer-btn ${l.key===currentWindyLayer?'active':''}" data-layer="${l.key}" onclick="setWindyLayer('${l.key}')">${l.label}</button>`
   ).join('');
   return `
     <div class="windy-section">
@@ -1255,7 +1345,7 @@ function buildWindyIframe() {
     `&detailLat=${LAT}&detailLon=${LON}&width=650&height=480&zoom=7` +
     `&level=surface&overlay=${currentWindyLayer}&product=ecmwf` +
     `&menu=&message=true&marker=true&calendar=now&pressure=` +
-    `&type=map&location=coordinates&detail=&metricWind=km/h&metricTemp=%C2%B0C&radarRange=-1`;
+    `&type=map&location=coordinates&detail=&metricWind=km/h&metricTemp=%C2%B0C&metricRadar=mm/h&radarRange=-1`;
   return `<iframe id="windyFrame" src="${src}" allowfullscreen onload="onWindyLoad()"></iframe>`;
 }
 
@@ -1270,11 +1360,10 @@ function onWindyLoad() {
 function setWindyLayer(layer) {
   currentWindyLayer = layer;
   document.querySelectorAll('.windy-layer-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(layer.substring(0,4)));
+    btn.classList.toggle('active', btn.dataset.layer === layer);
   });
   const wrap = document.querySelector('.windy-frame-wrap');
   if (wrap) {
-    // Re-inject iframe + loader
     wrap.innerHTML = `
       <div class="windy-loader" id="windyLoader">
         <div class="spinner" style="border-top-color:var(--teal)"></div>
@@ -1287,8 +1376,6 @@ function setWindyLayer(layer) {
 // ── Charts ──
 function destroyChart(ref) { if (ref) { try { ref.destroy(); } catch(e){} } }
 
-// Returns remaining precipitation per day: for today uses hourly from current hour onwards,
-// for future days uses full daily sum.
 function getRemainingPrecipPerDay(data) {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -1297,7 +1384,6 @@ function getRemainingPrecipPerDay(data) {
 
   return data.daily.time.map((d, i) => {
     if (i === 0) {
-      // Sum only hourly precipitation from current hour onwards, within today
       let remaining = 0;
       for (let j = 0; j < data.hourly.time.length; j++) {
         const t = data.hourly.time[j];
@@ -1431,7 +1517,6 @@ function render(data) {
   const cw = data.current_weather;
   const todayHours = getHourlyFromNow(data);
 
-  // Update dynamic weather background
   updateWeatherBg(cw.weathercode ?? d.weathercode[0], cw.is_day ?? 1);
 
   const html = `
@@ -1477,7 +1562,6 @@ function render(data) {
       <div class="wind-chart-subtitle">Linia punctată galbenă = viteza actuală</div>
     </div>
     <div class="wind-now-badge">
-      <!-- săgeata rotită cu unghiul real al vântului -->
       <div class="wind-compass" id="windCompass"
            style="transform:rotate(${cw.winddirection}deg)">↑</div>
       <div>
@@ -1507,7 +1591,6 @@ function render(data) {
 
   document.getElementById('app').innerHTML = html;
 
-  // Animate the precipitation bar fill
   setTimeout(() => {
     const fill = document.getElementById('precipBarFill');
     if (fill) {
@@ -1588,7 +1671,6 @@ function updateWeatherBg(code, isDay) {
   const cls = getWeatherBgClass(code, isDay);
   bg.className = cls + (isDay ? '' : ' night');
 
-  // Sync body/html background so mobile overscroll doesn't show black
   const bgMap = {
     'bg-sunny':         isDay ? '#062770' : '#01020a',
     'bg-partly-cloudy': isDay ? '#0e3870' : '#030812',
