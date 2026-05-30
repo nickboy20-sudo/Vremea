@@ -84,7 +84,7 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 50px;
-    padding: 13px 84px 13px 46px;
+    padding: 13px 100px 13px 46px;
     color: var(--text);
     font-family: var(--font-data);
     font-size: 15px;
@@ -100,7 +100,7 @@
     box-shadow: 0 0 0 3px rgba(91,156,246,0.1);
   }
   .search-clear {
-    position: absolute; right: 48px;
+    position: absolute; right: 54px;
     background: none; border: none; cursor: pointer;
     color: var(--text3); font-size: 18px; line-height: 1;
     padding: 4px; border-radius: 50%;
@@ -108,26 +108,43 @@
     display: none;
   }
   .search-clear:hover { color: var(--text); }
+
   .gps-btn {
-    position: absolute; right: 12px;
-    background: rgba(91,156,246,0.12);
-    border: 1px solid rgba(91,156,246,0.25);
+    position: absolute; right: 8px;
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(56,217,196,0.1);
+    border: 1px solid rgba(56,217,196,0.3);
+    border-radius: 50px;
+    padding: 6px 12px;
+    color: var(--teal);
+    font-family: var(--font-data);
+    font-size: 12px; font-weight: 500;
     cursor: pointer;
-    color: var(--blue);
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-    backdrop-filter: blur(4px);
+    transition: background 0.18s, border-color 0.18s, transform 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
   }
   .gps-btn:hover {
-    background: rgba(91,156,246,0.2);
-    border-color: rgba(91,156,246,0.4);
-    transform: scale(1.05);
+    background: rgba(56,217,196,0.2);
+    border-color: rgba(56,217,196,0.55);
+    transform: scale(1.04);
   }
-  .gps-btn:active { transform: scale(0.95); }
-  .gps-btn.loading { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .gps-btn:active { transform: scale(0.97); }
+  .gps-btn.loading {
+    opacity: 0.7; pointer-events: none;
+  }
+  .gps-btn .gps-icon {
+    font-size: 14px; line-height: 1;
+    transition: transform 0.4s;
+  }
+  .gps-btn.loading .gps-icon {
+    animation: spin 0.8s linear infinite;
+  }
+  @media (max-width: 400px) {
+    .gps-btn span.gps-label { display: none; }
+    .search-input { padding-right: 56px; }
+    .search-clear { right: 50px; }
+  }
   .search-suggestions {
   position: absolute;
   top: calc(100% + 8px);
@@ -786,12 +803,9 @@
         spellcheck="false"
       >
       <button class="search-clear" id="searchClear" title="Șterge">✕</button>
-      <button class="gps-btn" id="gpsBtn" title="Folosește locația mea" aria-label="Locația mea">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
-          <path d="M19.07 4.93l-2.83 2.83M7.76 16.24l-2.83 2.83M16.24 7.76l2.83-2.83M4.93 19.07l2.83-2.83"></path>
-        </svg>
+      <button class="gps-btn" id="gpsBtn" title="Folosește locația mea GPS" onclick="useGPSLocation()">
+        <span class="gps-icon">📍</span>
+        <span class="gps-label">Locația mea</span>
       </button>
     </div>
     <div class="search-suggestions" id="searchSuggestions"></div>
@@ -815,7 +829,7 @@ let COUNTRY = 'Romania';
 let allData = null;
 let selectedDay = 0;
 let precipChart = null, tempChart = null, hourlyChart = null, windChart = null;
-let currentWindyLayer = 'radar';
+let radarLayer = 'radar';
 let searchTimeout = null;
 let focusedSuggestion = -1;
 
@@ -871,7 +885,6 @@ function getHourIsDay(data, timeStr) {
 const searchInput = document.getElementById('searchInput');
 const searchClear = document.getElementById('searchClear');
 const searchSugg  = document.getElementById('searchSuggestions');
-const gpsBtn = document.getElementById('gpsBtn');
 
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim();
@@ -909,80 +922,6 @@ searchClear.addEventListener('click', () => {
   searchInput.focus();
 });
 
-// GPS - ia locația și afișează numele real
-gpsBtn.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    alert('Geolocația nu este suportată.');
-    return;
-  }
-  gpsBtn.classList.add('loading');
-  gpsBtn.disabled = true;
-
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    LAT = pos.coords.latitude;
-    LON = pos.coords.longitude;
-    
-    let foundName = false;
-    
-    // Încearcă 3 surse pentru numele locației
-    try {
-      // 1. Open-Meteo reverse
-      const r1 = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${LAT}&longitude=${LON}&language=ro`);
-      const d1 = await r1.json();
-      if (d1.results?.[0]) {
-        CITY = d1.results[0].name;
-        COUNTRY = d1.results[0].country || '';
-        TZ = d1.results[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        foundName = true;
-      }
-    } catch(e) {}
-    
-    if (!foundName) {
-      try {
-        // 2. Nominatim OSM - mult mai precis pentru sate/cartiere
-        const r2 = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${LAT}&lon=${LON}&format=jsonv2&accept-language=ro`, {
-          headers: { 'User-Agent': 'VremeaApp/1.0' }
-        });
-        const d2 = await r2.json();
-        if (d2.address) {
-          CITY = d2.address.city || d2.address.town || d2.address.village || d2.address.hamlet || d2.address.suburb || d2.address.municipality || 'Locația mea';
-          COUNTRY = d2.address.country || '';
-          TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          foundName = true;
-        }
-      } catch(e) {}
-    }
-    
-    if (!foundName) {
-      // 3. Fallback - BigDataCloud
-      try {
-        const r3 = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${LAT}&longitude=${LON}&localityLanguage=ro`);
-        const d3 = await r3.json();
-        CITY = d3.city || d3.locality || 'Locația mea';
-        COUNTRY = d3.countryName || '';
-        TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      } catch(e) {
-        CITY = 'Locația mea';
-        COUNTRY = '';
-        TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      }
-    }
-    
-    searchInput.value = CITY + (COUNTRY ? `, ${COUNTRY}` : '');
-    searchClear.style.display = 'block';
-    closeSuggestions();
-    loadWeather();
-    
-    gpsBtn.classList.remove('loading');
-    gpsBtn.disabled = false;
-  }, (err) => {
-    gpsBtn.classList.remove('loading');
-    gpsBtn.disabled = false;
-    const msgs = {1:'Permisiune refuzată',2:'Locație indisponibilă',3:'Timeout'};
-    alert(msgs[err.code] || 'Nu s-a putut accesa locația');
-  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
-});
-
 document.addEventListener('click', e => {
   if (!document.getElementById('searchWrap').contains(e.target)) closeSuggestions();
 });
@@ -1000,6 +939,90 @@ function closeSuggestions() {
   searchSugg.classList.remove('open');
   searchSugg.innerHTML = '';
   focusedSuggestion = -1;
+}
+
+async function useGPSLocation() {
+  const btn = document.getElementById('gpsBtn');
+  if (!navigator.geolocation) {
+    btn.style.color = '#f87171';
+    btn.querySelector('.gps-label').textContent = 'Indisponibil';
+    setTimeout(() => {
+      btn.style.color = '';
+      btn.querySelector('.gps-label').textContent = 'Locația mea';
+    }, 2500);
+    return;
+  }
+
+  btn.classList.add('loading');
+  btn.querySelector('.gps-icon').textContent = '⟳';
+  btn.querySelector('.gps-label').textContent = 'Se caută…';
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      try {
+        // Reverse geocode via Open-Meteo geocoding isn't available for reverse,
+        // so use nominatim
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ro`,
+          { headers: { 'Accept-Language': 'ro' } }
+        );
+        const geo = await r.json();
+        const addr = geo.address || {};
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || 'Locația mea';
+        const country = addr.country || '';
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Bucharest';
+
+        LAT = lat; LON = lon;
+        CITY = city; COUNTRY = country; TZ = tz;
+
+        searchInput.value = city + (country ? `, ${country}` : '');
+        searchClear.style.display = 'block';
+        closeSuggestions();
+
+        btn.classList.remove('loading');
+        btn.querySelector('.gps-icon').textContent = '✓';
+        btn.querySelector('.gps-label').textContent = 'Găsit!';
+        btn.style.color = 'var(--teal)';
+        setTimeout(() => {
+          btn.querySelector('.gps-icon').textContent = '📍';
+          btn.querySelector('.gps-label').textContent = 'Locația mea';
+          btn.style.color = '';
+        }, 1800);
+
+        loadWeather();
+      } catch(e) {
+        // Fallback: use coordinates directly without city name
+        LAT = lat; LON = lon;
+        CITY = `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
+        COUNTRY = '';
+        TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        searchInput.value = CITY;
+        searchClear.style.display = 'block';
+        btn.classList.remove('loading');
+        btn.querySelector('.gps-icon').textContent = '📍';
+        btn.querySelector('.gps-label').textContent = 'Locația mea';
+        loadWeather();
+      }
+    },
+    (err) => {
+      btn.classList.remove('loading');
+      btn.querySelector('.gps-icon').textContent = '⚠️';
+      btn.querySelector('.gps-label').textContent =
+        err.code === 1 ? 'Acces refuzat' :
+        err.code === 2 ? 'Indisponibil' : 'Eroare GPS';
+      btn.style.color = '#f87171';
+      btn.style.borderColor = 'rgba(248,113,113,0.4)';
+      setTimeout(() => {
+        btn.querySelector('.gps-icon').textContent = '📍';
+        btn.querySelector('.gps-label').textContent = 'Locația mea';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 3000);
+    },
+    { timeout: 10000, enableHighAccuracy: true }
+  );
 }
 
 async function geocode(query) {
@@ -1309,68 +1332,35 @@ function buildPrecipTotalCard(data) {
 }
 
 function buildWindySection() {
-  const layers = [
-    { key: 'radar', label: '🌧 Ploaie' },
-    { key: 'wind', label: '💨 Vânt' },
-    { key: 'temp', label: '🌡 Temp' },
-    { key: 'clouds', label: '☁️ Nori' },
-  ];
-  const btns = layers.map(l =>
-    `<button class="windy-layer-btn ${l.key===currentWindyLayer?'active':''}" data-layer="${l.key}" onclick="setWindyLayer('${l.key}')">${l.label}</button>`
-  ).join('');
   return `
     <div class="windy-section">
-      <div class="section-label">Hartă radar &amp; prognoză</div>
+      <div class="section-label">Hartă radar &amp; precipitații</div>
       <div class="windy-card">
         <div class="windy-card-header">
           <div class="windy-card-title">
             <div class="windy-dot"></div>
-            Hartă Windy Live
+            Ventusky · Radar Live
           </div>
-          <div class="windy-overlay-btns">${btns}</div>
         </div>
         <div class="windy-frame-wrap">
           <div class="windy-loader" id="windyLoader">
             <div class="spinner" style="border-top-color:var(--teal)"></div>
             <div class="windy-loader-text">Se încarcă harta radar…</div>
           </div>
-          ${buildWindyIframe()}
+          <iframe
+            src="https://embed.ventusky.com/?p=${LAT};${LON};7&l=radar"
+            allowfullscreen
+            onload="onRadarLoad()"
+            style="width:100%;height:100%;border:none;display:block;border-radius:0 0 var(--r2) var(--r2);">
+          </iframe>
         </div>
       </div>
     </div>`;
 }
 
-function buildWindyIframe() {
-  const src = `https://embed.windy.com/embed2.html?lat=${LAT}&lon=${LON}` +
-    `&detailLat=${LAT}&detailLon=${LON}&width=650&height=480&zoom=7` +
-    `&level=surface&overlay=${currentWindyLayer}&product=ecmwf` +
-    `&menu=&message=true&marker=true&calendar=now&pressure=` +
-    `&type=map&location=coordinates&detail=&metricWind=km/h&metricTemp=%C2%B0C&metricRadar=mm/h&radarRange=-1`;
-  return `<iframe id="windyFrame" src="${src}" allowfullscreen onload="onWindyLoad()"></iframe>`;
-}
-
-function onWindyLoad() {
+function onRadarLoad() {
   const loader = document.getElementById('windyLoader');
-  if (loader) {
-    loader.classList.add('hidden');
-    setTimeout(() => loader.remove(), 400);
-  }
-}
-
-function setWindyLayer(layer) {
-  currentWindyLayer = layer;
-  document.querySelectorAll('.windy-layer-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.layer === layer);
-  });
-  const wrap = document.querySelector('.windy-frame-wrap');
-  if (wrap) {
-    wrap.innerHTML = `
-      <div class="windy-loader" id="windyLoader">
-        <div class="spinner" style="border-top-color:var(--teal)"></div>
-        <div class="windy-loader-text">Se schimbă stratul…</div>
-      </div>
-      ${buildWindyIframe()}`;
-  }
+  if (loader) { loader.classList.add('hidden'); setTimeout(() => loader.remove(), 400); }
 }
 
 // ── Charts ──
