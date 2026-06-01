@@ -962,16 +962,12 @@ async function useGPSLocation() {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
       try {
-        // Reverse geocode via Open-Meteo geocoding isn't available for reverse,
-        // so use nominatim
         const r = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ro`,
-          { headers: { 'Accept-Language': 'ro' } }
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ro`
         );
         const geo = await r.json();
-        const addr = geo.address || {};
-        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || 'Locația mea';
-        const country = addr.country || '';
+        const city = geo.city || geo.locality || geo.principalSubdivision || 'Locația mea';
+        const country = geo.countryName || '';
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Bucharest';
 
         LAT = lat; LON = lon;
