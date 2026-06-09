@@ -33,6 +33,11 @@
     --font-mono: 'DM Mono', monospace;
     --r: 14px;
     --r2: 20px;
+    --bg-suggestions: #0a0c1f;
+    --bg-suggestions-hover: rgba(91,156,246,0.15);
+    --rain-bar-high: rgba(120,180,250,0.8);
+    --rain-bar-mid: rgba(120,180,250,0.55);
+    --rain-bar-low: rgba(120,180,250,0.3);
   }
 
   body {
@@ -146,39 +151,21 @@
     .search-clear { right: 50px; }
   }
   .search-suggestions {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: #0a0c1f;
-  border: 1px solid rgba(91, 156, 246, 0.3);
-  border-radius: 16px;
-  overflow: hidden;
-  z-index: 9999;
-  box-shadow:
-    0 15px 35px rgba(0,0,0,0.8),
-    0 5px 15px rgba(0,0,0,0.5);
-  display: none;
-  animation: suggFadeIn 0.2s ease-out both;
-}
-
-.suggestion-item {
-  padding: 14px 16px;
-  background: #0a0c1f;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.suggestion-item:hover, .suggestion-item.focused {
-  background: #161b3d;
-}
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: var(--bg-suggestions);
+    border: 1px solid rgba(91, 156, 246, 0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    z-index: 9999;
+    box-shadow:
+      0 15px 35px rgba(0,0,0,0.8),
+      0 5px 15px rgba(0,0,0,0.5);
+    display: none;
+    animation: suggFadeIn 0.2s ease-out both;
+  }
   @keyframes suggFadeIn {
     from { opacity: 0; transform: translateY(-6px) scale(0.99); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -199,7 +186,7 @@
     background: rgba(255,255,255,0.07);
   }
   .suggestion-item:hover, .suggestion-item.focused {
-    background: rgba(91,156,246,0.15);
+    background: var(--bg-suggestions-hover);
   }
   .suggestion-item:hover .suggestion-pin-wrap,
   .suggestion-item.focused .suggestion-pin-wrap { background: rgba(91,156,246,0.25); }
@@ -266,7 +253,7 @@
   }
   .now-temp { text-align: right; }
   .current-temp {
-    font-family: Outfit;
+    font-family: var(--font-data);
     font-size: 80px; font-weight: 300; line-height: 1;
     background: linear-gradient(135deg, #f5f7ff, var(--gold));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -1208,7 +1195,7 @@
         autocomplete="off"
         spellcheck="false"
       >
-      <button class="search-clear" id="searchClear" title="Șterge">✕</button>
+      <button class="search-clear" id="searchClear" title="Șterge" aria-label="Șterge câmpul de căutare">✕</button>
       <button class="gps-btn" id="gpsBtn" title="Folosește locația mea GPS" onclick="useGPSLocation()">
         <span class="gps-icon">📍</span>
         <span class="gps-label">Locația mea</span>
@@ -1226,20 +1213,59 @@
 </div>
 
 <script>
-// ── State ──
-let LAT = 44.4268, LON = 26.1025;
-let TZ = 'Europe/Bucharest';
-let CITY = 'București';
-let COUNTRY = 'Romania';
+// ── State centralizat ──
+const state = {
+  lat: 44.4268, lon: 26.1025,
+  tz: 'Europe/Bucharest',
+  city: 'București', country: 'Romania',
+  data: null,
+  selectedDay: 0
+};
 
-let allData = null;
-let selectedDay = 0;
+function setState(patch) {
+  Object.assign(state, patch);
+}
+
+// Alias-uri pentru compatibilitate cu funcțiile existente
+// (accesate prin state.* peste tot în cod)
 let precipChart = null, tempChart = null, hourlyChart = null, windChart = null;
-let radarLayer = 'radar';
 let searchTimeout = null;
 let focusedSuggestion = -1;
 
-// ── WMO Codes ──
+// ── Utilitare ──
+
+// Escapare HTML pentru innerHTML sigur (previne XSS)
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Data/ora curentă formatată — evită duplicarea logicii în 3 funcții
+function nowLocalISO() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const hourStr = pad(now.getHours());
+  return { now, dateStr, hourStr, currentHourStr: `${dateStr}T${hourStr}` };
+}
+
+// Praguri precipitații — fără magic numbers în cod
+const PRECIP_THRESHOLDS = [
+  { max: 0,        label: 'Perioadă secetoasă — nicio ploaie așteptată',   emoji: '🏜️' },
+  { max: 10,       label: 'Precipitații foarte reduse așteptate',           emoji: '🌂' },
+  { max: 30,       label: 'Precipitații ușoare în această perioadă',        emoji: '🌂' },
+  { max: 60,       label: 'Precipitații moderate — ia umbrela cu tine',     emoji: '☔' },
+  { max: 100,      label: 'Precipitații abundente așteptate',               emoji: '☔' },
+  { max: Infinity, label: 'Precipitații foarte abundente — fii pregătit',   emoji: '🌊' },
+];
+
+// Cache pentru geocoding — evită request-uri duplicate
+const geocodeCache = new Map();
+
+
 const WMO = {
   0:'Cer senin',1:'Predominant senin',2:'Parțial noros',3:'Cer acoperit',
   45:'Ceață',48:'Ceață cu chiciură',
@@ -1376,8 +1402,7 @@ async function useGPSLocation() {
         const country = geo.countryName || '';
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Bucharest';
 
-        LAT = lat; LON = lon;
-        CITY = city; COUNTRY = country; TZ = tz;
+        setState({ lat, lon, city, country, tz });
 
         searchInput.value = city + (country ? `, ${country}` : '');
         searchClear.style.display = 'block';
@@ -1396,11 +1421,14 @@ async function useGPSLocation() {
         loadWeather();
       } catch(e) {
         // Fallback: use coordinates directly without city name
-        LAT = lat; LON = lon;
-        CITY = `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
-        COUNTRY = '';
-        TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-        searchInput.value = CITY;
+        const fallbackCity = `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
+        setState({
+          lat, lon,
+          city: fallbackCity,
+          country: '',
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+        });
+        searchInput.value = state.city;
         searchClear.style.display = 'block';
         btn.classList.remove('loading');
         btn.querySelector('.gps-icon').textContent = '📍';
@@ -1428,10 +1456,16 @@ async function useGPSLocation() {
 }
 
 async function geocode(query) {
+  if (geocodeCache.has(query)) {
+    renderSuggestions(geocodeCache.get(query));
+    return;
+  }
   try {
     const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=ro&format=json`);
     const data = await r.json();
-    renderSuggestions(data.results || []);
+    const results = data.results || [];
+    geocodeCache.set(query, results);
+    renderSuggestions(results);
   } catch(e) {
     searchSugg.innerHTML = `<div class="search-no-results">Serviciul de geocodare nu este disponibil.</div>`;
   }
@@ -1453,8 +1487,8 @@ function renderSuggestions(results) {
       data-tz="${r.timezone||'UTC'}">
       <div class="suggestion-pin-wrap"><span class="suggestion-pin">📍</span></div>
       <div class="suggestion-text">
-        <div class="suggestion-name">${r.name}</div>
-        ${region ? `<div class="suggestion-region">${region}</div>` : ''}
+        <div class="suggestion-name">${esc(r.name)}</div>
+        ${region ? `<div class="suggestion-region">${esc(region)}</div>` : ''}
       </div>
       ${pop ? `<span class="suggestion-meta">${pop}</span>` : ''}
     </div>`;
@@ -1463,12 +1497,14 @@ function renderSuggestions(results) {
 
   searchSugg.querySelectorAll('.suggestion-item').forEach(el => {
     el.addEventListener('click', () => {
-      LAT = parseFloat(el.dataset.lat);
-      LON = parseFloat(el.dataset.lon);
-      CITY = el.dataset.city;
-      COUNTRY = el.dataset.country;
-      TZ = el.dataset.tz;
-      searchInput.value = CITY + (COUNTRY ? `, ${COUNTRY}` : '');
+      setState({
+        lat: parseFloat(el.dataset.lat),
+        lon: parseFloat(el.dataset.lon),
+        city: el.dataset.city,
+        country: el.dataset.country,
+        tz: el.dataset.tz
+      });
+      searchInput.value = state.city + (state.country ? `, ${state.country}` : '');
       searchClear.style.display = 'block';
       closeSuggestions();
       loadWeather();
@@ -1478,17 +1514,17 @@ function renderSuggestions(results) {
 
 // ── Weather API ──
 async function fetchWeather() {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.lat}&longitude=${state.lon}` +
     `&hourly=temperature_2m,precipitation,weathercode,apparent_temperature,windspeed_10m,winddirection_10m` +
     `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours,windspeed_10m_max` +
-    `&timezone=${encodeURIComponent(TZ)}&forecast_days=10&current_weather=true`;
+    `&timezone=${encodeURIComponent(state.tz)}&forecast_days=10&current_weather=true`;
   const r = await fetch(url);
   if (!r.ok) throw new Error('API error');
   return r.json();
 }
 
 function loadWeather() {
-  selectedDay = 0;
+  setState({ selectedDay: 0 });
   document.getElementById('app').innerHTML = `
     <div class="loading"><div class="spinner"></div><div class="loading-text">Se încarcă datele meteo…</div></div>`;
   fetchWeather()
@@ -1572,11 +1608,9 @@ function getHourlyForDay(data, dayIndex) {
 }
 
 function getHourlyFromNow(data, count = 24) {
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const localIso = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}`;
+  const { now, currentHourStr } = nowLocalISO();
 
-  let startIdx = data.hourly.time.findIndex(t => t.startsWith(localIso));
+  let startIdx = data.hourly.time.findIndex(t => t.startsWith(currentHourStr));
   if (startIdx === -1) {
     startIdx = data.hourly.time.findIndex(t => new Date(t) >= now);
   }
@@ -1687,7 +1721,7 @@ function buildDayCards(data) {
   return data.daily.time.map((d, i) => {
     const prec = +(data.daily.precipitation_sum[i]||0).toFixed(1);
     return `
-      <div class="day-card ${i===selectedDay?'active':''}" onclick="selectDay(${i})">
+      <div class="day-card ${i===state.selectedDay?'active':''}" onclick="selectDay(${i})">
         <div class="day-name">${i===0?'Azi':shortDay(d)}</div>
         <div class="day-date">${shortDate(d)}</div>
         <div class="day-icon">${icon(data.daily.weathercode[i])}</div>
@@ -1705,13 +1739,9 @@ function buildPrecipTotalCard(data) {
   const total = +sums.reduce((a,b)=>a+b,0).toFixed(1);
   const rainyDays = sums.filter(v => v >= 0.1).length;
   const pct = Math.min(100, Math.round(total / 100 * 100));
-  let context = total === 0 ? 'Perioadă secetoasă — nicio ploaie așteptată'
-    : total < 10 ? 'Precipitații foarte reduse așteptate'
-    : total < 30 ? 'Precipitații ușoare în această perioadă'
-    : total < 60 ? 'Precipitații moderate — ia umbrela cu tine'
-    : total < 100 ? 'Precipitații abundente așteptate'
-    : 'Precipitații foarte abundente — fii pregătit';
-  let emoji = total === 0 ? '🏜️' : total < 15 ? '🌂' : total < 50 ? '☔' : '🌊';
+  const threshold = PRECIP_THRESHOLDS.find(t => total <= t.max);
+  const context = threshold.label;
+  const emoji = threshold.emoji;
 
   return `
     <div class="precip-total-card">
@@ -1751,7 +1781,7 @@ function buildWindySection() {
           </div>
           <iframe
             id="ventuskyFrame"
-            src="https://embed.ventusky.com/?p=${LAT};${LON};7&l=radar"
+            src="https://embed.ventusky.com/?p=${state.lat};${state.lon};7&l=radar"
             allowfullscreen
             onload="onRadarLoad()"
             style="width:100%;height:100%;border:none;display:block;border-radius:0 0 var(--r2) var(--r2);">
@@ -1769,7 +1799,7 @@ function onRadarLoad() {
 function updateVentuskyMap() {
   const frame = document.getElementById('ventuskyFrame');
   if (!frame) return;
-  const newSrc = `https://embed.ventusky.com/?p=${LAT};${LON};7&l=radar`;
+  const newSrc = `https://embed.ventusky.com/?p=${state.lat};${state.lon};7&l=radar`;
   if (frame.src !== newSrc) {
     // Arătăm loader-ul din nou cât se reîncarcă harta
     const wrap = frame.parentElement;
@@ -1793,17 +1823,14 @@ function updateVentuskyMap() {
 function destroyChart(ref) { if (ref) { try { ref.destroy(); } catch(e){} } }
 
 function getRemainingPrecipPerDay(data) {
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-  const currentHourStr = `${todayStr}T${pad(now.getHours())}`;
+  const { dateStr, currentHourStr } = nowLocalISO();
 
   return data.daily.time.map((d, i) => {
     if (i === 0) {
       let remaining = 0;
       for (let j = 0; j < data.hourly.time.length; j++) {
         const t = data.hourly.time[j];
-        if (t.startsWith(todayStr) && t >= currentHourStr) {
+        if (t.startsWith(dateStr) && t >= currentHourStr) {
           remaining += data.hourly.precipitation[j] || 0;
         }
       }
@@ -1824,7 +1851,11 @@ function drawPrecipChart(data) {
       labels,
       datasets: [{
         data: vals,
-        backgroundColor: vals.map(v => v>10?'rgba(120,180,250,0.8)':v>3?'rgba(120,180,250,0.55)':'rgba(120,180,250,0.3)'),
+        backgroundColor: vals.map(v =>
+          v > 10 ? 'var(--rain-bar-high)' :
+          v > 3  ? 'var(--rain-bar-mid)'  :
+                   'var(--rain-bar-low)'
+        ),
         borderColor: 'rgba(120,180,250,0.6)',
         borderWidth: 1, borderRadius: 5, borderSkipped: false
       }]
@@ -1911,24 +1942,24 @@ function drawHourlyChart(hours) {
 }
 
 function selectDay(i) {
-  selectedDay = i;
-  if (!allData) return;
+  setState({ selectedDay: i });
+  if (!state.data) return;
   document.querySelectorAll('.day-card').forEach((el, idx) => el.classList.toggle('active', idx===i));
-  const sunData = allData.daily;
+  const sunData = state.data.daily;
   document.querySelector('.sun-rise-time').textContent = formatTime(sunData.sunrise[i]);
   document.querySelector('.sun-set-time').textContent = formatTime(sunData.sunset[i]);
   document.querySelector('.sun-duration').textContent = daylight(sunData.sunrise[i], sunData.sunset[i]);
   document.querySelector('.sun-arc-wrap').innerHTML = drawSunArc(sunData.sunrise[i], sunData.sunset[i]);
-  const hours = i === 0 ? getHourlyFromNow(allData) : getHourlyForDay(allData, i);
+  const hours = i === 0 ? getHourlyFromNow(state.data) : getHourlyForDay(state.data, i);
   document.querySelector('.hourly-scroll').innerHTML = buildHourlyRow(hours);
   document.querySelector('.hourly-chart-title').textContent =
-    `Orar — ${i===0?'Azi (din ora curentă)':shortDate(allData.daily.time[i])}`;
+    `Orar — ${i===0?'Azi (din ora curentă)':shortDate(state.data.daily.time[i])}`;
   drawHourlyChart(hours);
-  if (allData) drawWindChart(hours, Math.round(allData.current_weather.windspeed));
+  drawWindChart(hours, Math.round(state.data.current_weather.windspeed));
 }
 
 function render(data) {
-  allData = data;
+  setState({ data });
   const d = data.daily;
   const cw = data.current_weather;
   const todayHours = getHourlyFromNow(data);
@@ -1938,8 +1969,8 @@ function render(data) {
   const html = `
     <div class="header">
       <div>
-        <div class="location-name">${CITY}</div>
-        <div class="location-sub">${COUNTRY} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})}</div>
+        <div class="location-name">${esc(state.city)}</div>
+        <div class="location-sub">${esc(state.country)} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})}</div>
       </div>
       <div class="now-temp">
         <div class="current-temp">${Math.round(cw.temperature)}°<span style="font-size:52px; vertical-align:middle; margin-left:8px; -webkit-text-fill-color: initial">${iconForTime(cw.weathercode||d.weathercode[0], cw.is_day ?? 1)}</span></div>
