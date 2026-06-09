@@ -1515,12 +1515,17 @@ function renderSuggestions(results) {
 // ── Weather API ──
 async function fetchWeather() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.lat}&longitude=${state.lon}` +
+    `&current=temperature_2m,precipitation,weathercode,is_day,apparent_temperature,windspeed_10m,winddirection_10m` +
+    `&minutely_15=temperature_2m,precipitation,weathercode` +
     `&hourly=temperature_2m,precipitation,weathercode,apparent_temperature,windspeed_10m,winddirection_10m` +
     `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours,windspeed_10m_max` +
-    `&timezone=${encodeURIComponent(state.tz)}&forecast_days=10&current_weather=true`;
+    `&timezone=${encodeURIComponent(state.tz)}&forecast_days=10&timeformat=iso8601`;
   const r = await fetch(url);
   if (!r.ok) throw new Error('API error');
-  return r.json();
+  const data = await r.json();
+  // salvează timestamp-ul actualizării pentru badge
+  data._fetchedAt = new Date().toISOString();
+  return data;
 }
 
 function loadWeather() {
@@ -1961,7 +1966,14 @@ function selectDay(i) {
 function render(data) {
   setState({ data });
   const d = data.daily;
-  const cw = data.current_weather;
+  const cw = data.current || data.current_weather;
+  // normalize pentru noul API current
+  if (cw) {
+    if (cw.windspeed_10m !== undefined) cw.windspeed = cw.windspeed_10m;
+    if (cw.winddirection_10m !== undefined) cw.winddirection = cw.winddirection_10m;
+    if (cw.temperature_2m !== undefined) cw.temperature = cw.temperature_2m;
+    if (cw.apparent_temperature !== undefined) cw.apparent = cw.apparent_temperature;
+  }
   const todayHours = getHourlyFromNow(data);
 
   updateWeatherBg(cw.weathercode ?? d.weathercode[0], cw.is_day ?? 1);
@@ -1970,7 +1982,7 @@ function render(data) {
     <div class="header">
       <div>
         <div class="location-name">${esc(state.city)}</div>
-        <div class="location-sub">${esc(state.country)} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})}</div>
+        <div class="location-sub">${esc(state.country)} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})} · <span style="color:var(--teal);opacity:0.8">actualizat ${new Date(data._fetchedAt || Date.now()).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</span></div>
       </div>
       <div class="now-temp">
         <div class="current-temp">${Math.round(cw.temperature)}°<span style="font-size:52px; vertical-align:middle; margin-left:8px; -webkit-text-fill-color: initial">${iconForTime(cw.weathercode||d.weathercode[0], cw.is_day ?? 1)}</span></div>
@@ -2362,6 +2374,18 @@ function updateWeatherBg(code, isDay) {
 
 // ── Boot ──
 loadWeather();
+
+// auto-refresh la fiecare 10 minute
+setInterval(loadWeather, 10 * 60 * 1000);
+
+// reîncarcă când revii în tab
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // evită refresh dacă datele sunt mai noi de 2 minute
+    const last = state.data?._fetchedAt ? new Date(state.data._fetchedAt).getTime() : 0;
+    if (Date.now() - last > 120000) loadWeather();
+  }
+});
 </script>
 </body>
 </html>
