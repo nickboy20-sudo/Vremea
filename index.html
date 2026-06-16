@@ -762,7 +762,7 @@
   .sun-shaft {
     position: absolute;
     width: 60px;
-    top: 0; 
+    top: 0;
     background: linear-gradient(180deg, rgba(255,230,120,0.2) 0%, rgba(255,210,80,0.05) 60%, transparent 100%);
     transform-origin: top center;
     animation: shaft-sway 8s ease-in-out infinite;
@@ -1174,6 +1174,104 @@
     95%{opacity:0.9}
     100%{top:110%;transform:translateX(-15px);opacity:0}
   }
+
+  /* ── V2: Metrics, Outfit, Favorites, Alerts ── */
+  .top-bar { display:flex; gap:8px; align-items:center; position:absolute; left:8px; top:50%; transform:translateY(-50%); z-index:2; }
+  .theme-btn {
+    background: rgba(255,255,255,0.05); border:1px solid var(--border); color: var(--text2);
+    border-radius: 50px; padding:6px 10px; font-size:12px; cursor:pointer; transition:.2s;
+    font-family: var(--font-data);
+  }
+  .theme-btn:hover { background: var(--card-hover); color: var(--text); }
+  .search-input { padding-left: 110px !important; }
+  .search-icon { left: 84px !important; }
+
+  .favorites-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; min-height: 24px; }
+  .fav-chip {
+    background: var(--card); border:1px solid var(--border); color: var(--text2);
+    padding:5px 12px; border-radius: 50px; font-size:12px; cursor:pointer; transition:.15s;
+  }
+  .fav-chip:hover { background: var(--card-hover); color: var(--text); border-color: var(--border2); }
+  .fav-chip.active { background: rgba(91,156,246,0.15); border-color: rgba(91,156,246,0.4); color: var(--text); }
+  .fav-chip .rm { margin-left:6px; opacity:.5; }
+  .fav-chip .rm:hover { opacity:1; }
+
+  .fav-star {
+    background:none; border:1px solid var(--border); color: var(--gold);
+    border-radius: 50%; width:36px; height:36px; cursor:pointer; font-size:16px;
+    transition:.2s; margin-left:10px; flex-shrink:0;
+  }
+  .fav-star:hover { background: rgba(245,200,66,0.1); transform:scale(1.08); }
+  .fav-star.saved { background: rgba(245,200,66,0.15); }
+  .location-head { display:flex; align-items:center; gap:4px; }
+
+  .alert-banner {
+    background: linear-gradient(135deg, rgba(245,200,66,0.1), rgba(248,113,113,0.08));
+    border:1px solid rgba(245,200,66,0.25); border-radius: var(--r2);
+    padding:14px 18px; margin-bottom:20px; font-size:13px; color: var(--text2);
+    display:none; animation: fadeUp .5s ease both;
+  }
+  .alert-banner.show { display:block; }
+  .alert-banner strong { color: var(--gold); }
+
+  .metrics-grid {
+    display:grid; grid-template-columns: repeat(6,1fr); gap:10px;
+    margin-bottom:22px; animation: fadeUp .6s .05s ease both;
+  }
+  @media (max-width: 900px){ .metrics-grid{ grid-template-columns: repeat(3,1fr);} }
+  @media (max-width: 520px){ .metrics-grid{ grid-template-columns: repeat(2,1fr);} }
+  .metric-card {
+    background: var(--card); border:1px solid var(--border); border-radius: var(--r);
+    padding:14px 14px; min-height: 92px;
+  }
+  .metric-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); margin-bottom:6px; }
+  .metric-value { font-size:22px; font-weight:500; }
+  .metric-value span { font-size:12px; color: var(--text2); margin-left:2px; }
+  .metric-sub { font-size:11px; color: var(--text2); margin-top:3px; }
+  .uv-bar { height:5px; background: rgba(255,255,255,0.07); border-radius:3px; margin-top:8px; overflow:hidden; }
+  .uv-fill { height:100%; border-radius:3px; transition: width .6s ease; }
+
+  .outfit-card {
+    background: linear-gradient(135deg, rgba(192,132,252,0.07), rgba(91,156,246,0.05));
+    border:1px solid rgba(192,132,252,0.2); border-radius: var(--r2);
+    padding:18px 22px; margin-bottom:22px; display:flex; gap:16px; align-items:center;
+    animation: fadeUp .6s .08s ease both;
+  }
+  .outfit-emoji { font-size:34px; flex-shrink:0; }
+  .outfit-title { font-size:11px; letter-spacing:2px; text-transform:uppercase; color: rgba(192,132,252,0.8); margin-bottom:4px; }
+  .outfit-text { font-size:14px; color: var(--text); line-height:1.5; }
+  .outfit-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .outfit-tag { font-size:11px; background: rgba(255,255,255,0.05); border:1px solid var(--border); padding:3px 9px; border-radius: 50px; color: var(--text2); }
+
+  .best-window {
+    background: rgba(56,217,196,0.06); border:1px solid rgba(56,217,196,0.18);
+    border-radius: 12px; padding:10px 14px; font-size:12px; color: var(--text2);
+    margin-bottom:14px;
+  }
+  .best-window strong { color: var(--teal); }
+
+  .hour-card { cursor: pointer; }
+  .hour-card.selected { background: rgba(192,132,252,0.13); border-color: rgba(192,132,252,0.4); }
+  .hour-feel { font-size:10px; color: var(--text3); margin-top:2px; }
+
+  .live-clock { font-family: var(--font-mono); font-size:12px; color: var(--text3); letter-spacing:1px; }
+
+  /* Light theme */
+  body.light {
+    --bg: #eef2f8; --bg2: #e4e9f2; --bg3: #dde3ee;
+    --card: rgba(0,0,0,0.035); --card-hover: rgba(0,0,0,0.06);
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+    --text: #1a2035; --text2: rgba(26,32,53,0.62); --text3: rgba(26,32,53,0.45);
+    --bg-suggestions: #ffffff; --bg-suggestions-hover: rgba(91,156,246,0.08);
+  }
+  body.light #weather-bg::after { background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.45) 100%); }
+  body.light .current-temp { background: linear-gradient(135deg, #1a2035, #b07500); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+  @media (prefers-reduced-motion: reduce) {
+    #weather-bg * { animation: none !important; }
+  }
+  body.reduce-motion #weather-bg * { animation: none !important; }
+
 </style>
 </head>
 <body>
@@ -1186,6 +1284,9 @@
 <div class="app" style="padding-bottom: 0;">
   <div class="search-wrap" id="searchWrap">
     <div class="search-inner">
+      <div class="top-bar">
+        <button class="theme-btn" id="themeBtn" title="Temă">🌓</button>
+      </div>
       <span class="search-icon">🔍</span>
       <input
         class="search-input"
@@ -1202,6 +1303,7 @@
       </button>
     </div>
     <div class="search-suggestions" id="searchSuggestions"></div>
+    <div class="favorites-row" id="favoritesRow"></div>
   </div>
 </div>
 
@@ -1219,7 +1321,8 @@ const state = {
   tz: 'Europe/Bucharest',
   city: 'București', country: 'Romania',
   data: null,
-  selectedDay: 0
+  selectedDay: 0,
+  selectedHour: null
 };
 
 function setState(patch) {
@@ -1515,15 +1618,13 @@ function renderSuggestions(results) {
 // ── Weather API ──
 async function fetchWeather() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.lat}&longitude=${state.lon}` +
-    `&current=temperature_2m,precipitation,weathercode,is_day,apparent_temperature,windspeed_10m,winddirection_10m` +
-    `&minutely_15=temperature_2m,precipitation,weathercode` +
-    `&hourly=temperature_2m,precipitation,weathercode,apparent_temperature,windspeed_10m,winddirection_10m` +
-    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours,windspeed_10m_max` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,is_day,windspeed_10m,winddirection_10m,windgusts_10m,pressure_msl,uv_index` +
+    `&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m,uv_index,visibility` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours,windspeed_10m_max,uv_index_max` +
     `&timezone=${encodeURIComponent(state.tz)}&forecast_days=10&timeformat=iso8601`;
   const r = await fetch(url);
   if (!r.ok) throw new Error('API error');
   const data = await r.json();
-  // salvează timestamp-ul actualizării pentru badge
   data._fetchedAt = new Date().toISOString();
   return data;
 }
@@ -1599,12 +1700,18 @@ function getHourlyForDay(data, dayIndex) {
   return data.hourly.time
     .map((t, i) => ({ t, i }))
     .filter(({t}) => t.startsWith(dateStr))
-    .map(({i}) => ({
+    .map(({i, t}) => ({
+      t,
       hour: data.hourly.time[i].slice(11,16),
       temp: Math.round(data.hourly.temperature_2m[i]),
       prec: +(data.hourly.precipitation[i]).toFixed(1),
       wind: +(data.hourly.windspeed_10m[i]||0).toFixed(1),
       wdir: data.hourly.winddirection_10m[i]||0,
+      humidity: data.hourly.relative_humidity_2m ? data.hourly.relative_humidity_2m[i] : null,
+      uv: data.hourly.uv_index ? data.hourly.uv_index[i] : null,
+      pressure: null,
+      visibility: data.hourly.visibility ? Math.round(data.hourly.visibility[i]/1000) : null,
+      gust: data.hourly.windgusts_10m ? data.hourly.windgusts_10m[i] : null,
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
       isDay: getHourIsDay(data, data.hourly.time[i]),
@@ -1626,11 +1733,17 @@ function getHourlyFromNow(data, count = 24) {
     const prevDate = i > startIdx ? data.hourly.time[i-1].slice(0,10) : null;
     const thisDate = data.hourly.time[i].slice(0,10);
     result.push({
+      t: data.hourly.time[i],
       hour: data.hourly.time[i].slice(11,16),
       temp: Math.round(data.hourly.temperature_2m[i]),
       prec: +(data.hourly.precipitation[i]).toFixed(1),
       wind: +(data.hourly.windspeed_10m[i]||0).toFixed(1),
       wdir: data.hourly.winddirection_10m[i]||0,
+      humidity: data.hourly.relative_humidity_2m ? data.hourly.relative_humidity_2m[i] : null,
+      uv: data.hourly.uv_index ? data.hourly.uv_index[i] : null,
+      pressure: null,
+      visibility: data.hourly.visibility ? Math.round(data.hourly.visibility[i]/1000) : null,
+      gust: data.hourly.windgusts_10m ? data.hourly.windgusts_10m[i] : null,
       code: data.hourly.weathercode[i],
       feel: Math.round(data.hourly.apparent_temperature[i]),
       isDay: getHourIsDay(data, data.hourly.time[i]),
@@ -1709,14 +1822,16 @@ function drawWindChart(hours, currentWind) {
 }
 
 function buildHourlyRow(hours) {
-  return hours.map((h) => {
+  return hours.map((h, idx) => {
     const sep = h.newDay
       ? `<div class="hour-day-sep">›</div>`
       : '';
-    return sep + `<div class="hour-card ${h.isNow ? 'active now' : ''}">
+    const sel = state.selectedHour === h.t ? ' selected' : '';
+    return sep + `<div class="hour-card ${h.isNow ? 'active now' : ''}${sel}" onclick="selectHour('${h.t || h.hour}')">
       <div class="hour-time">${h.isNow ? 'Acum' : h.hour}</div>
       <div class="hour-icon">${iconForTime(h.code, h.isDay !== false)}</div>
       <div class="hour-temp">${h.temp}°</div>
+      ${h.feel !== undefined && h.feel !== h.temp ? `<div class="hour-feel">res. ${h.feel}°</div>` : ''}
       ${h.prec>0 ? `<div class="hour-prec">${h.prec}mm</div>` : '<div class="hour-prec"> </div>'}
     </div>`;
   }).join('');
@@ -1947,7 +2062,7 @@ function drawHourlyChart(hours) {
 }
 
 function selectDay(i) {
-  setState({ selectedDay: i });
+  setState({ selectedDay: i, selectedHour: null });
   if (!state.data) return;
   document.querySelectorAll('.day-card').forEach((el, idx) => el.classList.toggle('active', idx===i));
   const sunData = state.data.daily;
@@ -1960,29 +2075,77 @@ function selectDay(i) {
   document.querySelector('.hourly-chart-title').textContent =
     `Orar — ${i===0?'Azi (din ora curentă)':shortDate(state.data.daily.time[i])}`;
   drawHourlyChart(hours);
-  drawWindChart(hours, Math.round(state.data.current_weather.windspeed));
+  const cw = state.data.current || state.data.current_weather;
+  drawWindChart(hours, Math.round(cw.windspeed || cw.windspeed_10m || 0));
 }
 
 function render(data) {
   setState({ data });
   const d = data.daily;
   const cw = data.current || data.current_weather;
-  // normalize pentru noul API current
   if (cw) {
     if (cw.windspeed_10m !== undefined) cw.windspeed = cw.windspeed_10m;
     if (cw.winddirection_10m !== undefined) cw.winddirection = cw.winddirection_10m;
     if (cw.temperature_2m !== undefined) cw.temperature = cw.temperature_2m;
     if (cw.apparent_temperature !== undefined) cw.apparent = cw.apparent_temperature;
+    if (cw.relative_humidity_2m !== undefined) cw.humidity = cw.relative_humidity_2m;
+    if (cw.pressure_msl !== undefined) cw.pressure = cw.pressure_msl;
+    if (cw.uv_index !== undefined) cw.uv = cw.uv_index;
+    if (cw.windgusts_10m !== undefined) cw.gust = cw.windgusts_10m;
   }
   const todayHours = getHourlyFromNow(data);
 
   updateWeatherBg(cw.weathercode ?? d.weathercode[0], cw.is_day ?? 1);
 
+  // metrics
+  const feels = cw.apparent ?? cw.temperature;
+  const humidity = cw.humidity ?? (data.hourly.relative_humidity_2m ? data.hourly.relative_humidity_2m[0] : null);
+  const pressure = cw.pressure ?? 1013;
+  const uv = cw.uv ?? 0;
+  const visibility = 10;
+  const gust = cw.gust ?? Math.round((cw.windspeed||0)*1.4);
+
+  const uvLabel = uv < 3 ? 'Scăzut' : uv < 6 ? 'Moderat' : uv < 8 ? 'Ridicat' : uv < 11 ? 'Foarte ridicat' : 'Extrem';
+  const uvColor = uv < 3 ? '#38d9c4' : uv < 6 ? '#f5c842' : uv < 8 ? '#f08a2e' : '#ef4444';
+
+  const metricsHtml = `<div class="metrics-grid">
+    <div class="metric-card"><div class="metric-label">Se resimte</div><div class="metric-value">${Math.round(feels)}<span>°C</span></div><div class="metric-sub">${feels > cw.temperature + 1 ? 'mai cald' : feels < cw.temperature -1 ? 'mai rece' : 'ca aerul'}</div></div>
+    <div class="metric-card"><div class="metric-label">Umiditate</div><div class="metric-value">${humidity ?? '—'}<span>%</span></div><div class="metric-sub">${humidity > 70 ? 'umed' : humidity < 40 ? 'uscat' : 'confortabil'}</div></div>
+    <div class="metric-card"><div class="metric-label">Presiune</div><div class="metric-value">${Math.round(pressure)}<span>hPa</span></div><div class="metric-sub">normală</div></div>
+    <div class="metric-card"><div class="metric-label">UV Index</div><div class="metric-value">${uv?.toFixed ? uv.toFixed(1) : uv}<span></span></div><div class="metric-sub">${uvLabel}</div><div class="uv-bar"><div class="uv-fill" style="width:${Math.min(100, uv/11*100)}%; background:${uvColor}"></div></div></div>
+    <div class="metric-card"><div class="metric-label">Vizibilitate</div><div class="metric-value">${visibility}<span>km</span></div><div class="metric-sub">bună</div></div>
+    <div class="metric-card"><div class="metric-label">Rafale</div><div class="metric-value">${Math.round(gust)}<span>km/h</span></div><div class="metric-sub">${windDirLabel(cw.winddirection)}</div></div>
+  </div>`;
+
+  // outfit advisor
+  const temp = Math.round(cw.temperature);
+  let outfit = '', tags = [], emoji='👕';
+  if (temp <= 0) { outfit='Foarte frig – geacă groasă, căciulă, mănuși.'; tags=['strat termic','fular']; emoji='🧥'; }
+  else if (temp <= 8) { outfit='Răcoare – geacă călduroasă, pulover.'; tags=['geacă','long sleeve']; emoji='🧣'; }
+  else if (temp <= 16) { outfit='Răcoros plăcut – hanorac / jachetă ușoară.'; tags=['hanorac','jeans']; emoji='👖'; }
+  else if (temp <= 24) { outfit='Perfect pentru tricou – eventual o jachetă subțire seara.'; tags=['tricou','ușor']; emoji='👕'; }
+  else { outfit='Cald – haine lejere, hidratează-te.'; tags=['in','pălărie','SPF']; emoji='😎'; }
+  const code = cw.weathercode || 0;
+  if ([51,53,55,61,63,65,80,81,82,95,96,99].includes(code)) { outfit += ' Ia umbrela.'; tags.push('☔ umbrelă'); emoji='🌧️'; }
+  if ((cw.windspeed||0) > 25) { outfit += ' Vânt puternic.'; tags.push('💨 windbreaker'); }
+  if (uv >= 6) { tags.push('🧴 SPF 30+'); }
+  const outfitHtml = `<div class="outfit-card"><div class="outfit-emoji">${emoji}</div><div><div class="outfit-title">Ce port azi?</div><div class="outfit-text">${outfit}</div><div class="outfit-tags">${tags.map(t=>`<span class="outfit-tag">${t}</span>`).join('')}</div></div></div>`;
+
+  // best window
+  const best = findBestWindow(todayHours);
+  const bestHtml = best ? `<div class="best-window">✨ <strong>Cea mai bună fereastră:</strong> ${best.start}–${best.end}, ${best.temp}°C, ${best.prec}mm ploaie</div>` : '';
+
+  const isFav = isFavorite(state.city, state.lat, state.lon);
+
   const html = `
+    <div id="alertBanner" class="alert-banner"></div>
     <div class="header">
       <div>
-        <div class="location-name">${esc(state.city)}</div>
-        <div class="location-sub">${esc(state.country)} · ${new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})} · <span style="color:var(--teal);opacity:0.8">actualizat ${new Date(data._fetchedAt || Date.now()).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</span></div>
+        <div class="location-head">
+          <div class="location-name">${esc(state.city)}</div>
+          <button class="fav-star ${isFav ? 'saved' : ''}" onclick="toggleFavorite()" title="Salvează locația">${isFav ? '★' : '☆'}</button>
+        </div>
+        <div class="location-sub">${esc(state.country)} · <span class="live-clock" id="liveClock"></span> · <span style="color:var(--teal);opacity:0.8">actualizat ${new Date(data._fetchedAt || Date.now()).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</span></div>
       </div>
       <div class="now-temp">
         <div class="current-temp">${Math.round(cw.temperature)}°<span style="font-size:52px; vertical-align:middle; margin-left:8px; -webkit-text-fill-color: initial">${iconForTime(cw.weathercode||d.weathercode[0], cw.is_day ?? 1)}</span></div>
@@ -1990,8 +2153,12 @@ function render(data) {
       </div>
     </div>
 
+    ${metricsHtml}
+    ${outfitHtml}
+
     <div class="section-label">Prognoză orară</div>
-    <div class="hourly-scroll">${buildHourlyRow(todayHours)}</div>
+    ${bestHtml}
+    <div class="hourly-scroll" id="hourlyScroll">${buildHourlyRow(todayHours)}</div>
 
     <div class="section-label">Prognoză 10 zile</div>
     <div class="days-grid">${buildDayCards(data)}</div>
@@ -2050,6 +2217,10 @@ function render(data) {
 
   document.getElementById('app').innerHTML = html;
 
+  startLiveClock();
+  renderFavorites();
+  checkAlerts(todayHours, cw);
+
   setTimeout(() => {
     const fill = document.getElementById('precipBarFill');
     if (fill) {
@@ -2064,7 +2235,6 @@ function render(data) {
   }, 80);
 }
 
-// ── Weather Background ──
 function getWeatherBgClass(code, isDay) {
   if ([95,96,99].includes(code)) return 'bg-storm';
   if ([71,73,75,77,85,86].includes(code)) return 'bg-snow';
@@ -2371,6 +2541,115 @@ function updateWeatherBg(code, isDay) {
 
   bg.innerHTML = inner;
 }
+
+
+// ── V2 Features ──
+function findBestWindow(hours) {
+  if (!hours || hours.length < 3) return null;
+  let best = null, bestScore = 1e9;
+  for (let i=0;i<=hours.length-3;i++) {
+    const slice = hours.slice(i,i+3);
+    const prec = slice.reduce((a,h)=>a+h.prec,0);
+    const wind = slice.reduce((a,h)=>a+h.wind,0)/3;
+    const temp = slice.reduce((a,h)=>a+h.temp,0)/3;
+    const score = prec*10 + wind*0.5 - (temp>=18 && temp<=26 ? 5 : 0);
+    if (score < bestScore) { bestScore = score; best = { start: slice[0].hour, end: slice[2].hour, temp: Math.round(temp), prec: prec.toFixed(1) }; }
+  }
+  return best;
+}
+
+function selectHour(t) {
+  state.selectedHour = t;
+  const hours = state.selectedDay === 0 ? getHourlyFromNow(state.data) : getHourlyForDay(state.data, state.selectedDay);
+  document.querySelector('.hourly-scroll').innerHTML = buildHourlyRow(hours);
+  const h = hours.find(x => x.t === t);
+  if (h) {
+    const cwEl = document.querySelector('.current-temp');
+    if (cwEl) cwEl.childNodes[0].nodeValue = h.temp + '°';
+    const condEl = document.querySelector('.current-cond');
+    if (condEl) condEl.textContent = desc(h.code) + ` · resimțite ${h.feel}° · vânt ${h.wind} km/h`;
+  }
+}
+
+const FAV_KEY = 'vremea_favs_v2';
+function getFavorites(){ try { return JSON.parse(localStorage.getItem(FAV_KEY)||'[]'); } catch(e){ return []; } }
+function saveFavorites(f){ localStorage.setItem(FAV_KEY, JSON.stringify(f)); }
+function isFavorite(city, lat, lon){ return getFavorites().some(x => Math.abs(x.lat-lat)<0.05 && Math.abs(x.lon-lon)<0.05); }
+function toggleFavorite(){
+  const favs = getFavorites();
+  const idx = favs.findIndex(x => Math.abs(x.lat-state.lat)<0.05 && Math.abs(x.lon-state.lon)<0.05);
+  if (idx >= 0) { favs.splice(idx,1); } else { favs.unshift({ city: state.city, country: state.country, lat: state.lat, lon: state.lon, tz: state.tz }); }
+  saveFavorites(favs.slice(0,6));
+  renderFavorites();
+  const btn = document.querySelector('.fav-star');
+  if (btn) { const saved = isFavorite(state.city, state.lat, state.lon); btn.textContent = saved ? '★' : '☆'; btn.classList.toggle('saved', saved); }
+}
+function renderFavorites(){
+  const row = document.getElementById('favoritesRow');
+  if (!row) return;
+  const favs = getFavorites();
+  if (!favs.length) { row.innerHTML = '<span style="font-size:11px;color:var(--text3)">Salvează locații cu ★</span>'; return; }
+  row.innerHTML = favs.map(f => {
+    const active = Math.abs(f.lat-state.lat)<0.05 && Math.abs(f.lon-state.lon)<0.05;
+    return `<button class="fav-chip ${active?'active':''}" onclick="goFavorite(${f.lat},${f.lon},'${f.city.replace(/'/g,"\\'")}','${(f.country||'').replace(/'/g,"\\'")}','${f.tz}')">${esc(f.city)}<span class="rm" onclick="event.stopPropagation();removeFavorite(${f.lat},${f.lon})">×</span></button>`;
+  }).join('');
+}
+function goFavorite(lat,lon,city,country,tz){ setState({lat,lon,city,country,tz}); searchInput.value = city + (country?`, ${country}`:''); searchClear.style.display='block'; loadWeather(); }
+function removeFavorite(lat,lon){ const favs = getFavorites().filter(x=> Math.abs(x.lat-lat)>=0.05 || Math.abs(x.lon-lon)>=0.05); saveFavorites(favs); renderFavorites(); }
+
+function checkAlerts(hours, cw){
+  const banner = document.getElementById('alertBanner');
+  if (!banner) return;
+  const msgs = [];
+  if ((cw.windspeed||0) > 50) msgs.push('Vânt puternic acum');
+  const heavyRain = hours.filter(h=>h.prec>=5).length;
+  if (heavyRain) msgs.push(`Ploaie intensă în ${heavyRain} ore din următoarele 24h`);
+  const stormCodes = [95,96,99];
+  if (hours.some(h=>stormCodes.includes(h.code))) msgs.push('Risc de furtună în următoarele ore');
+  const uvMax = Math.max(...hours.map(h=>h.uv||0));
+  if (uvMax >= 8) msgs.push('UV foarte ridicat – folosește protecție solară');
+  if (msgs.length){ banner.innerHTML = '⚠️ <strong>Alertă meteo:</strong> ' + msgs.join(' · '); banner.classList.add('show'); }
+}
+
+let clockInterval = null;
+function startLiveClock(){
+  if (clockInterval) clearInterval(clockInterval);
+  const el = document.getElementById('liveClock');
+  if (!el) return;
+  const tick = ()=>{ try { el.textContent = new Intl.DateTimeFormat('ro-RO',{hour:'2-digit',minute:'2-digit', timeZone: state.tz}).format(new Date()); } catch(e){ el.textContent = new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}); } };
+  tick(); clockInterval = setInterval(tick, 30000);
+}
+
+// Theme toggle
+(function(){
+  const saved = localStorage.getItem('vremea_theme') || 'dark';
+  if (saved === 'light') document.body.classList.add('light');
+  if (saved === 'reduce') document.body.classList.add('reduce-motion');
+  document.addEventListener('click', e=>{
+    if (e.target.closest('#themeBtn')){
+      const body = document.body;
+      if (!body.classList.contains('light') && !body.classList.contains('reduce-motion')){
+        body.classList.add('light'); localStorage.setItem('vremea_theme','light');
+      } else if (body.classList.contains('light')){
+        body.classList.remove('light'); body.classList.add('reduce-motion'); localStorage.setItem('vremea_theme','reduce');
+      } else {
+        body.classList.remove('reduce-motion'); localStorage.setItem('vremea_theme','dark');
+      }
+    }
+  });
+})();
+
+// Parallax subtle
+document.addEventListener('mousemove', e=>{
+  const x = e.clientX / window.innerWidth - 0.5;
+  const y = e.clientY / window.innerHeight - 0.5;
+  document.querySelectorAll('.glow-orb').forEach((el,i)=>{
+    el.style.transform = `translate(${x*(20+i*10)}px, ${y*(20+i*10)}px)`;
+  });
+});
+
+// init favorites row on first load
+document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(renderFavorites, 100); });
 
 // ── Boot ──
 loadWeather();
