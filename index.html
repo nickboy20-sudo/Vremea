@@ -14,12 +14,12 @@
     --bg: #07091a;
     --bg2: #0d1028;
     --bg3: #131630;
-    --card: rgba(255,255,255,0.04);
-    --card-hover: rgba(255,255,255,0.07);
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
+    --card: rgba(255,255,255,0.06);
+    --card-hover: rgba(255,255,255,0.10);
+    --border: rgba(255,255,255,0.12);
+    --border2: rgba(255,255,255,0.18);
     --text: #e8eaf6;
-    --text2: rgba(232,234,246,0.55);
+    --text2: rgba(232,234,246,0.65);
     --text3: rgba(232,234,246,0.35);
     --gold: #f5c842;
     --gold2: #e8a820;
@@ -31,8 +31,8 @@
     --font-display: 'Cormorant Garamond', serif;
     --font-data: 'Outfit', sans-serif;
     --font-mono: 'DM Mono', monospace;
-    --r: 14px;
-    --r2: 20px;
+    --r: 16px;
+    --r2: 24px;
     --bg-suggestions: #0a0c1f;
     --bg-suggestions-hover: rgba(91,156,246,0.15);
     --rain-bar-high: rgba(120,180,250,0.8);
@@ -57,14 +57,14 @@
   .glow-orb {
     position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0;
   }
-  .glow-orb.a { width: 500px; height: 500px; top: -200px; left: -100px; background: rgba(91,156,246,0.08); }
-  .glow-orb.b { width: 400px; height: 400px; bottom: 100px; right: -100px; background: rgba(56,217,196,0.06); }
+  .glow-orb.a { width: 500px; height: 500px; top: -200px; left: -100px; background: rgba(91,156,246,0.12); }
+  .glow-orb.b { width: 400px; height: 400px; bottom: 100px; right: -100px; background: rgba(56,217,196,0.09); }
   .glow-orb.c { width: 300px; height: 300px; top: 40%; left: 40%; background: rgba(245,200,66,0.05); }
 
   .app {
     position: relative; z-index: 1;
     max-width: 1100px; margin: 0 auto;
-    padding: 40px 24px 80px;
+    padding: 48px 28px 90px;
   }
 
   /* ── Search Bar ── */
@@ -85,17 +85,21 @@
     pointer-events: none; z-index: 1;
   }
   .search-input {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     width: 100%;
     background: var(--card);
     border: 1px solid var(--border);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
     border-radius: 50px;
-    padding: 13px 100px 13px 46px;
+    padding: 14px 100px 14px 48px;
     color: var(--text);
     font-family: var(--font-data);
     font-size: 15px;
     font-weight: 400;
     outline: none;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    transition: border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.2s;
     letter-spacing: 0.3px;
   }
   .search-input::placeholder { color: var(--text3); }
@@ -147,7 +151,9 @@
   }
   @media (max-width: 400px) {
     .gps-btn span.gps-label { display: none; }
-    .search-input { padding-right: 56px; }
+    .search-input {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); padding-right: 56px; }
     .search-clear { right: 50px; }
   }
   .search-suggestions {
@@ -264,7 +270,8 @@
   /* ── Sun arc ── */
   .sun-section {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--r2); padding: 28px 32px;
+    border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05); padding: 28px 32px;
     margin-bottom: 24px;
     animation: fadeUp 0.6s 0.1s ease both;
     display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center;
@@ -336,6 +343,7 @@
     background: linear-gradient(135deg, rgba(126,184,247,0.08) 0%, rgba(91,156,246,0.05) 100%);
     border: 1px solid rgba(126,184,247,0.2);
     border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
     padding: 20px 28px;
     margin-bottom: 24px;
     display: flex; align-items: center; gap: 24px;
@@ -398,7 +406,8 @@
   @media (max-width: 700px) { .charts-row { grid-template-columns: 1fr; } }
   .chart-card {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--r2); padding: 20px 20px 14px;
+    border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05); padding: 20px 20px 14px;
   }
   .chart-title {
     font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
@@ -410,7 +419,8 @@
 .wind-chart-card {
   background: linear-gradient(135deg, rgba(56,217,196,0.06) 0%, rgba(32,184,166,0.03) 100%);
   border: 1px solid rgba(56,217,196,0.2);
-  border-radius: var(--r2); padding: 20px 20px 14px;
+  border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05); padding: 20px 20px 14px;
   margin-bottom: 24px;
   animation: fadeUp 0.6s 0.28s ease both;
   position: relative; overflow: hidden;
@@ -451,7 +461,8 @@
   /* ── Hourly detail chart ── */
   .hourly-chart-card {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--r2); padding: 20px 20px 14px;
+    border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05); padding: 20px 20px 14px;
     margin-bottom: 24px;
     animation: fadeUp 0.6s 0.3s ease both;
   }
@@ -465,7 +476,10 @@
   .windy-card {
     background: var(--card);
     border: 1px solid var(--border);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
     border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
     overflow: hidden;
     position: relative;
   }
@@ -567,7 +581,9 @@
     .windy-card-header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
     .windy-overlay-btns { flex-wrap: wrap; gap: 6px; }
     .windy-layer-btn { padding: 6px 12px; font-size: 12px; }
-    .search-input { font-size: 16px; } /* prevent iOS zoom */
+    .search-input {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); font-size: 16px; } /* prevent iOS zoom */
   }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
@@ -1183,7 +1199,9 @@
     font-family: var(--font-data);
   }
   .theme-btn:hover { background: var(--card-hover); color: var(--text); }
-  .search-input { padding-left: 110px !important; }
+  .search-input {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); padding-left: 110px !important; }
   .search-icon { left: 84px !important; }
 
   .favorites-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; min-height: 24px; }
@@ -1208,11 +1226,20 @@
   .alert-banner {
     background: linear-gradient(135deg, rgba(245,200,66,0.1), rgba(248,113,113,0.08));
     border:1px solid rgba(245,200,66,0.25); border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
     padding:14px 18px; margin-bottom:20px; font-size:13px; color: var(--text2);
     display:none; animation: fadeUp .5s ease both;
+    flex-direction: column; gap: 6px;
   }
-  .alert-banner.show { display:block; }
+  .alert-banner.show { display:flex; }
   .alert-banner strong { color: var(--gold); }
+  .alert-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(245,200,66,0.1);
+  }
+  .alert-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .alert-item:first-child { padding-top: 0; }
 
   .metrics-grid {
     display:grid; grid-template-columns: repeat(6,1fr); gap:10px;
@@ -1234,6 +1261,7 @@
   .outfit-card {
     background: linear-gradient(135deg, rgba(192,132,252,0.07), rgba(91,156,246,0.05));
     border:1px solid rgba(192,132,252,0.2); border-radius: var(--r2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
     padding:18px 22px; margin-bottom:22px; display:flex; gap:16px; align-items:center;
     animation: fadeUp .6s .08s ease both;
   }
@@ -1244,7 +1272,7 @@
   .outfit-tag { font-size:11px; background: rgba(255,255,255,0.05); border:1px solid var(--border); padding:3px 9px; border-radius: 50px; color: var(--text2); }
 
   .best-window {
-    background: rgba(56,217,196,0.06); border:1px solid rgba(56,217,196,0.18);
+    background: rgba(56,217,196,0.09); border:1px solid rgba(56,217,196,0.18);
     border-radius: 12px; padding:10px 14px; font-size:12px; color: var(--text2);
     margin-bottom:14px;
   }
@@ -1380,12 +1408,19 @@ function esc(str) {
     .replace(/"/g, '&quot;');
 }
 
-// Data/ora curentă formatată — evită duplicarea logicii în 3 funcții
+// Data/ora curentă formatată în fusul orar al locației căutate (nu al browserului)
 function nowLocalISO() {
   const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-  const hourStr = pad(now.getHours());
+  const tz = state.tz || 'UTC';
+  // Extragem data și ora în fusul orar al locației folosind Intl
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(now);
+  const get = t => parts.find(p => p.type === t)?.value ?? '00';
+  const dateStr = `${get('year')}-${get('month')}-${get('day')}`;
+  const hourStr = get('hour') === '24' ? '00' : get('hour');
   return { now, dateStr, hourStr, currentHourStr: `${dateStr}T${hourStr}` };
 }
 
@@ -1653,7 +1688,7 @@ function renderSuggestions(results) {
 async function fetchWeather() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.lat}&longitude=${state.lon}` +
     `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,is_day,windspeed_10m,winddirection_10m,windgusts_10m,pressure_msl,uv_index` +
-    `&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m,uv_index,visibility` +
+    `&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m,uv_index,visibility,pressure_msl` +
     `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,sunrise,sunset,precipitation_hours,windspeed_10m_max,uv_index_max` +
     `&timezone=${encodeURIComponent(state.tz)}&forecast_days=10&timeformat=iso8601`;
   const r = await fetch(url);
@@ -2136,8 +2171,28 @@ function render(data) {
   const humidity = cw.humidity ?? (data.hourly.relative_humidity_2m ? data.hourly.relative_humidity_2m[0] : null);
   const pressure = cw.pressure ?? 1013;
   const uv = cw.uv ?? 0;
-  const visibility = 10;
+  // Vizibilitate reală din current sau din prima valoare orară (API returnează în metri → km)
+  const visibilityRaw = data.hourly.visibility
+    ? data.hourly.visibility[0]
+    : null;
+  const visibility = visibilityRaw != null ? Math.round(visibilityRaw / 1000) : 10;
+  const visLabel = visibility < 1 ? 'ceață densă' : visibility < 4 ? 'vizibilitate redusă' : visibility < 10 ? 'moderată' : 'bună';
   const gust = cw.gust ?? Math.round((cw.windspeed||0)*1.4);
+
+  // Trend presiune: comparăm valorile orare din următoarele 3h vs ultimele 3h
+  let pressureTrend = 'stabilă';
+  if (data.hourly.pressure_msl) {
+    const { currentHourStr } = nowLocalISO();
+    const nowIdx = data.hourly.time.findIndex(t => t.startsWith(currentHourStr));
+    if (nowIdx >= 3) {
+      const past = data.hourly.pressure_msl.slice(Math.max(0, nowIdx-3), nowIdx);
+      const fut  = data.hourly.pressure_msl.slice(nowIdx, nowIdx+3);
+      const avgPast = past.reduce((a,b)=>a+b,0)/past.length;
+      const avgFut  = fut.reduce((a,b)=>a+b,0)/fut.length;
+      const diff = avgFut - avgPast;
+      pressureTrend = diff > 1.5 ? '↑ în creștere' : diff < -1.5 ? '↓ în scădere' : 'stabilă';
+    }
+  }
 
   const uvLabel = uv < 3 ? 'Scăzut' : uv < 6 ? 'Moderat' : uv < 8 ? 'Ridicat' : uv < 11 ? 'Foarte ridicat' : 'Extrem';
   const uvColor = uv < 3 ? '#38d9c4' : uv < 6 ? '#f5c842' : uv < 8 ? '#f08a2e' : '#ef4444';
@@ -2145,9 +2200,9 @@ function render(data) {
   const metricsHtml = `<div class="metrics-grid">
     <div class="metric-card"><div class="metric-label">Se resimte</div><div class="metric-value">${Math.round(feels)}<span>°C</span></div><div class="metric-sub">${feels > cw.temperature + 1 ? 'mai cald' : feels < cw.temperature -1 ? 'mai rece' : 'ca aerul'}</div></div>
     <div class="metric-card"><div class="metric-label">Umiditate</div><div class="metric-value">${humidity ?? '—'}<span>%</span></div><div class="metric-sub">${humidity > 70 ? 'umed' : humidity < 40 ? 'uscat' : 'confortabil'}</div></div>
-    <div class="metric-card"><div class="metric-label">Presiune</div><div class="metric-value">${Math.round(pressure)}<span>hPa</span></div><div class="metric-sub">normală</div></div>
+    <div class="metric-card"><div class="metric-label">Presiune</div><div class="metric-value">${Math.round(pressure)}<span>hPa</span></div><div class="metric-sub">${pressureTrend}</div></div>
     <div class="metric-card"><div class="metric-label">UV Index</div><div class="metric-value">${uv?.toFixed ? uv.toFixed(1) : uv}<span></span></div><div class="metric-sub">${uvLabel}</div><div class="uv-bar"><div class="uv-fill" style="width:${Math.min(100, uv/11*100)}%; background:${uvColor}"></div></div></div>
-    <div class="metric-card"><div class="metric-label">Vizibilitate</div><div class="metric-value">${visibility}<span>km</span></div><div class="metric-sub">bună</div></div>
+    <div class="metric-card"><div class="metric-label">Vizibilitate</div><div class="metric-value">${visibility}<span>km</span></div><div class="metric-sub">${visLabel}</div></div>
     <div class="metric-card"><div class="metric-label">Rafale</div><div class="metric-value">${Math.round(gust)}<span>km/h</span></div><div class="metric-sub">${windDirLabel(cw.winddirection)}</div></div>
   </div>`;
 
@@ -2635,14 +2690,61 @@ function checkAlerts(hours, cw){
   const banner = document.getElementById('alertBanner');
   if (!banner) return;
   const msgs = [];
-  if ((cw.windspeed||0) > 50) msgs.push('Vânt puternic acum');
-  const heavyRain = hours.filter(h=>h.prec>=5).length;
-  if (heavyRain) msgs.push(`Ploaie intensă în ${heavyRain} ore din următoarele 24h`);
+
+  // Vânt periculos (acum)
+  if ((cw.windspeed||0) > 60) msgs.push('🌬️ Vânt extrem de puternic acum (' + Math.round(cw.windspeed) + ' km/h)');
+  else if ((cw.windspeed||0) > 40) msgs.push('💨 Vânt puternic acum (' + Math.round(cw.windspeed) + ' km/h)');
+
+  // Rafale periculoase
+  const gustNow = cw.gust ?? Math.round((cw.windspeed||0)*1.4);
+  if (gustNow > 80) msgs.push('💨 Rafale foarte puternice (' + Math.round(gustNow) + ' km/h) — evitați deplasările');
+
+  // Ploaie intensă
+  const heavyRainHours = hours.filter(h=>h.prec>=5);
+  if (heavyRainHours.length >= 3) msgs.push(`🌧️ Ploaie torențială în ${heavyRainHours.length} ore din următoarele 24h`);
+  else if (heavyRainHours.length) msgs.push(`🌧️ Ploaie intensă în ${heavyRainHours.length} ore din următoarele 24h`);
+
+  // Furtună
   const stormCodes = [95,96,99];
-  if (hours.some(h=>stormCodes.includes(h.code))) msgs.push('Risc de furtună în următoarele ore');
+  if (hours.some(h=>stormCodes.includes(h.code))) msgs.push('⛈️ Risc de furtună cu descărcări electrice în următoarele ore');
+
+  // Ninsoare
+  const snowCodes = [71,73,75,77,85,86];
+  if (hours.some(h=>snowCodes.includes(h.code))) msgs.push('❄️ Ninsoare așteptată — conduceți cu precauție');
+
+  // Temperaturi extreme
+  const tempMin = Math.min(...hours.map(h=>h.temp));
+  const tempMax = Math.max(...hours.map(h=>h.temp));
+  if (tempMin <= -10) msgs.push('🥶 Ger extrem așteptat (' + tempMin + '°C) — riscul de degerături este ridicat');
+  else if (tempMin <= 0) msgs.push('❄️ Temperaturi sub 0°C așteptate — pericol de gheață pe căi rutiere');
+  if (tempMax >= 38) msgs.push('🔥 Caniculă severă (' + tempMax + '°C) — hidratare și evitarea expunerii la soare obligatorii');
+  else if (tempMax >= 33) msgs.push('☀️ Temperaturi ridicate așteptate (' + tempMax + '°C) — hidratați-vă');
+
+  // UV periculos
   const uvMax = Math.max(...hours.map(h=>h.uv||0));
-  if (uvMax >= 8) msgs.push('UV foarte ridicat – folosește protecție solară');
-  if (msgs.length){ banner.innerHTML = '⚠️ <strong>Alertă meteo:</strong> ' + msgs.join(' · '); banner.classList.add('show'); }
+  if (uvMax >= 11) msgs.push('☀️ UV extrem (' + uvMax.toFixed(1) + ') — evitați expunerea între 11:00–16:00');
+  else if (uvMax >= 8) msgs.push('🧴 UV foarte ridicat (' + uvMax.toFixed(1) + ') — folosiți protecție solară SPF 50+');
+
+  // Vizibilitate redusă
+  const fogCodes = [45,48];
+  if (hours.slice(0,6).some(h=>fogCodes.includes(h.code))) msgs.push('🌫️ Ceață în următoarele ore — vizibilitate redusă pe drum');
+
+  // Presiune în scădere rapidă (semn de deteriorare a vremii)
+  if (cw.pressure && state.data?.hourly?.pressure_msl) {
+    const hPres = state.data.hourly.pressure_msl;
+    if (hPres.length >= 6) {
+      const drop = hPres[0] - hPres[5];
+      if (drop > 5) msgs.push('📉 Presiunea atmosferică scade rapid — vremea se va deteriora');
+    }
+  }
+
+  if (msgs.length) {
+    banner.innerHTML = msgs.map(m => `<div class="alert-item">${m}</div>`).join('');
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+    banner.innerHTML = '';
+  }
 }
 
 let clockInterval = null;
