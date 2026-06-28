@@ -315,28 +315,72 @@
   .hour-temp { font-size: 15px; font-weight: 500; }
   .hour-prec { font-size: 10px; color: var(--rain); margin-top: 4px; }
 
-  /* ── 10-day ── */
+  /* ── 10-day forecast list ── */
   .days-grid {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    display: flex; flex-direction: column; gap: 0;
     margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     animation: fadeUp 0.6s 0.2s ease both;
   }
-  @media (max-width: 700px) { .days-grid { grid-template-columns: repeat(2, 1fr); } }
   .day-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--r); padding: 16px 12px;
-    cursor: pointer; transition: background 0.2s, border-color 0.2s, transform 0.15s;
-    display: flex; flex-direction: column; gap: 6px;
+    display: grid;
+    grid-template-columns: 100px 36px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 20px;
+    cursor: pointer;
+    transition: background 0.18s;
+    border-bottom: 1px solid var(--border);
+    position: relative;
   }
-  .day-card:hover { background: var(--card-hover); transform: translateY(-3px); border-color: var(--border2); }
-  .day-card.active { background: rgba(91,156,246,0.12); border-color: rgba(91,156,246,0.35); }
-  .day-name { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); }
+  .day-card:last-child { border-bottom: none; }
+  .day-card:hover { background: var(--card-hover); }
+  .day-card.active {
+    background: rgba(91,156,246,0.10);
+  }
+  .day-card.active::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--blue);
+    border-radius: 0 2px 2px 0;
+  }
+  .day-label-col {
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .day-name {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    text-transform: capitalize;
+  }
+  .day-card.active .day-name { color: var(--blue); }
   .day-date { font-size: 11px; color: var(--text3); }
-  .day-icon { font-size: 26px; line-height: 1.2; }
-  .day-temps { display: flex; gap: 6px; align-items: baseline; margin-top: 2px; }
-  .day-high { font-size: 18px; font-weight: 500; }
-  .day-low { font-size: 13px; color: var(--text2); }
-  .day-prec { font-size: 11px; color: var(--rain); }
+  .day-icon { font-size: 24px; line-height: 1; text-align: center; }
+  .day-desc { font-size: 13px; color: var(--text2); }
+  .day-prec {
+    font-size: 12px; color: var(--rain);
+    text-align: right; min-width: 52px;
+    opacity: 0.85;
+  }
+  .day-prec:empty, .day-prec.no-rain { color: transparent; }
+  .day-temps {
+    display: flex; gap: 8px; align-items: baseline;
+    min-width: 72px; justify-content: flex-end;
+  }
+  .day-low { font-size: 13px; color: var(--text3); }
+  .day-high { font-size: 15px; font-weight: 600; color: var(--text); }
+  @media (max-width: 520px) {
+    .day-card {
+      grid-template-columns: 80px 30px 1fr auto;
+      gap: 8px; padding: 11px 14px;
+    }
+    .day-desc { display: none; }
+    .day-prec { min-width: 44px; font-size: 11px; }
+    .day-temps { min-width: 60px; }
+  }
 
   /* ── Total Precipitation Card ── */
   .precip-total-card {
@@ -570,7 +614,6 @@
     .sun-time { font-size: 22px; }
     .hourly-scroll { gap: 6px; }
     .hour-card { min-width: 52px; padding: 10px 7px; }
-    .days-grid { grid-template-columns: repeat(2, 1fr); }
     .precip-total-card { flex-direction: column; gap: 14px; padding: 18px; }
     .precip-total-icon { font-size: 34px; }
     .precip-total-value { font-size: 38px; }
@@ -1909,16 +1952,20 @@ function buildHourlyRow(hours) {
 function buildDayCards(data) {
   return data.daily.time.map((d, i) => {
     const prec = +(data.daily.precipitation_sum[i]||0).toFixed(1);
+    const dayLabel = i===0 ? 'Azi' : (i===1 ? 'Mâine' : shortDay(d));
     return `
       <div class="day-card ${i===state.selectedDay?'active':''}" onclick="selectDay(${i})">
-        <div class="day-name">${i===0?'Azi':shortDay(d)}</div>
-        <div class="day-date">${shortDate(d)}</div>
-        <div class="day-icon">${icon(data.daily.weathercode[i])}</div>
-        <div class="day-temps">
-          <span class="day-high">${Math.round(data.daily.temperature_2m_max[i])}°</span>
-          <span class="day-low">${Math.round(data.daily.temperature_2m_min[i])}°</span>
+        <div class="day-label-col">
+          <span class="day-name">${dayLabel}</span>
+          <span class="day-date">${shortDate(d)}</span>
         </div>
-        ${prec>0 ? `<div class="day-prec">💧 ${prec} mm</div>` : '<div class="day-prec"> </div>'}
+        <div class="day-icon">${icon(data.daily.weathercode[i])}</div>
+        <div class="day-desc">${desc(data.daily.weathercode[i])}</div>
+        <div class="day-prec${prec>0?'':' no-rain'}">${prec>0?'💧 '+prec+' mm':''}</div>
+        <div class="day-temps">
+          <span class="day-low">${Math.round(data.daily.temperature_2m_min[i])}°</span>
+          <span class="day-high">${Math.round(data.daily.temperature_2m_max[i])}°</span>
+        </div>
       </div>`;
   }).join('');
 }
