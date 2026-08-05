@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeteoRo — Prognoză Meteo Avansată</title>
+<meta name="description" content="Prognoză meteo detaliată cu date în timp real, alerte, grafice și hartă radar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:#030610;--bg2:#060c1a;--bg3:#0b1225;
+  --card:rgba(255,255,255,0.045);--card-hover:rgba(255,255,255,0.075);
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --border-glow:rgba(99,160,255,0.25);
+  --text:#eef0ff;--text2:rgba(238,240,255,0.6);--text3:rgba(238,240,255,0.3);
+  --gold:#fbbf24;--gold2:#f59e0b;--teal:#2dd4bf;--teal2:#14b8a6;
+  --blue:#60a5fa;--blue2:#3b82f6;--rain:#93c5fd;--accent:#c084fc;
+  --danger:#f87171;--warn:#fb923c;--success:#4ade80;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-data:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --r:16px;--r2:22px;--r3:28px;
+  --blur-sm:14px;--blur-lg:20px;
+  --shadow:0 12px 40px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
+  --shadow-sm:0 4px 16px rgba(0,0,0,0.4);
+  --inner-glow:inset 0 1px 0 rgba(255,255,255,0.07),inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+body{background:var(--bg);color:var(--text);font-family:var(--font-data);min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── Noise & Orbs ── */
+.noise{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");background-size:256px;mix-blend-mode:overlay}
+.glow-orb{position:fixed;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0;transition:transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94)}
+.glow-orb.a{width:600px;height:600px;top:-250px;left:-150px;background:radial-gradient(circle,rgba(59,130,246,0.14) 0%,rgba(37,99,235,0.06) 60%,transparent 100%)}
+.glow-orb.b{width:500px;height:500px;bottom:50px;right:-150px;background:radial-gradient(circle,rgba(45,212,191,0.1) 0%,rgba(20,184,166,0.04) 60%,transparent 100%)}
+.glow-orb.c{width:350px;height:350px;top:45%;left:42%;background:radial-gradient(circle,rgba(251,191,36,0.06) 0%,transparent 70%)}
+@media(max-width:640px){.glow-orb{filter:blur(60px)}.glow-orb.a{width:300px;height:300px}.glow-orb.b{width:260px;height:260px}.glow-orb.c{width:200px;height:200px}}
+
+/* ── Weather Background ── */
+#weather-bg{position:fixed;inset:0;z-index:0;transition:background 1.5s ease;pointer-events:none;will-change:transform}
+#weather-bg.bg-sunny{background:linear-gradient(180deg,#0a1628 0%,#0f2240 25%,#1a3a60 55%,#254d7a 80%,#2a5a90 100%)}
+#weather-bg.bg-sunny.night{background:linear-gradient(180deg,#020408 0%,#04080f 25%,#060c18 55%,#081020 80%,#0b1428 100%)}
+#weather-bg.bg-partly-cloudy{background:linear-gradient(180deg,#0d1e35 0%,#152840 25%,#1c3550 55%,#234468 80%,#2a5280 100%)}
+#weather-bg.bg-partly-cloudy.night{background:linear-gradient(180deg,#030610 0%,#060c18 30%,#0a1220 60%,#0e1828 85%,#121e30 100%)}
+#weather-bg.bg-overcast{background:linear-gradient(180deg,#0d1520 0%,#121d2e 25%,#182538 55%,#1d2e45 80%,#223550 100%)}
+#weather-bg.bg-overcast.night{background:linear-gradient(180deg,#05080e 0%,#080c15 30%,#0b101e 60%,#0e1428 85%,#111830 100%)}
+#weather-bg.bg-fog{background:linear-gradient(180deg,#151c28 0%,#1c2535 25%,#232e42 55%,#2a3650 80%,#303e5a 100%)}
+#weather-bg.bg-rain{background:linear-gradient(180deg,#060e1a 0%,#0a1628 25%,#0f2035 55%,#142840 80%,#192f50 100%)}
+#weather-bg.bg-rain.night{background:linear-gradient(180deg,#020408 0%,#040810 25%,#060c18 55%,#080f20 80%,#0a1228 100%)}
+#weather-bg.bg-snow{background:linear-gradient(180deg,#5a7898 0%,#7898b8 25%,#a0b8cc 55%,#c8d8e6 80%,#e0ecf6 100%)}
+#weather-bg.bg-snow.night{background:linear-gradient(180deg,#08101e 0%,#101828 30%,#182030 60%,#1e2838 85%,#243040 100%)}
+#weather-bg.bg-storm{background:linear-gradient(180deg,#030508 0%,#06080f 30%,#090c18 60%,#0c1020 100%)}
+#weather-bg.bg-hail{background:linear-gradient(180deg,#0d1520 0%,#152030 30%,#1a2840 60%,#202f50 100%)}
+.sun-bg-orb{position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,0.15) 0%,rgba(251,191,36,0.05) 40%,transparent 70%);pointer-events:none}
+.sun-glow-ring{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,0.12) 0%,rgba(251,191,36,0.04) 50%,transparent 70%);animation:ray-pulse 4s ease infinite;pointer-events:none}
+.sun-bg-rays{position:absolute;top:0;left:0;width:100%;height:60%;background:conic-gradient(from 0deg at 50% 0%,rgba(251,191,36,0.03) 0deg,transparent 20deg,rgba(251,191,36,0.03) 40deg,transparent 60deg,rgba(251,191,36,0.03) 80deg,transparent 100deg,rgba(251,191,36,0.03) 120deg,transparent 140deg,rgba(251,191,36,0.03) 160deg,transparent 180deg,rgba(251,191,36,0.03) 200deg,transparent 220deg,rgba(251,191,36,0.03) 240deg,transparent 260deg,rgba(251,191,36,0.03) 280deg,transparent 300deg,rgba(251,191,36,0.03) 320deg,transparent 340deg,rgba(251,191,36,0.03) 360deg);pointer-events:none}
+.cloud-shape{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,0.06);filter:blur(25px);animation:cloud-drift ease-in-out infinite}
+.rain-container{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.rain-drop{position:absolute;top:-10%;width:1.5px;background:linear-gradient(180deg,transparent 0%,rgba(147,197,253,0.6) 50%,rgba(167,210,255,0.4) 100%);border-radius:1px;animation:rain-fall linear infinite}
+.rain-drop.night-drop{background:linear-gradient(180deg,transparent 0%,rgba(180,200,255,0.4) 50%,rgba(200,215,255,0.3) 100%)}
+.rain-splash{position:absolute;bottom:0;width:100%;height:6px;background:linear-gradient(180deg,rgba(100,160,255,0) 0%,rgba(100,160,255,0.05) 100%);animation:splash-pulse 1.5s ease-in-out infinite}
+.pavement-reflection{position:absolute;bottom:0;left:0;right:0;height:20%;background:linear-gradient(180deg,transparent,rgba(80,120,200,0.07));animation:reflection-shimmer 3s ease-in-out infinite}
+.snow-container{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.snow-flake{position:absolute;top:-5%;border-radius:50%;background:rgba(255,255,255,0.9);animation:snow-fall linear infinite;filter:blur(0.3px);box-shadow:0 0 3px rgba(255,255,255,0.6)}
+.snow-flake.night-flake{background:rgba(200,220,255,0.85);box-shadow:0 0 5px rgba(180,210,255,0.7)}
+.fog-layer{position:absolute;width:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(200,210,230,0.06),rgba(210,220,240,0.08),rgba(200,210,230,0.05),transparent);border-radius:40px;filter:blur(12px);animation:fog-drift ease-in-out infinite}
+.stars-container{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.star{position:absolute;background:white;border-radius:50%;animation:star-twinkle ease infinite}
+.moon-glow{position:absolute;top:8%;right:15%;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(200,220,255,0.12) 0%,transparent 70%);animation:moon-glow 4s ease infinite;pointer-events:none}
+.lightning-flash{position:absolute;inset:0;opacity:0;animation:lightning-strike 11s ease infinite;pointer-events:none}
+.storm-clouds{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.storm-cloud{position:absolute;top:-20%;border-radius:50%;background:rgba(255,255,255,0.03);filter:blur(30px);animation:cloud-drift ease-in-out infinite}
+.hail-container{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.hail-drop{position:absolute;top:-10%;border-radius:50%;background:rgba(200,220,255,0.8);box-shadow:0 0 3px rgba(200,220,255,0.5);animation:rain-fall linear infinite}
+.winter-aurora{position:absolute;width:100%;height:50%;top:0;background:linear-gradient(180deg,rgba(60,100,200,0.06) 0%,rgba(80,160,220,0.04) 40%,transparent 100%);filter:blur(18px);animation:aurora-wave 20s ease-in-out infinite;pointer-events:none}
+
+/* ── Animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes ray-pulse{0%,100%{opacity:0.7;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes cloud-drift{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+@keyframes rain-drip{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(12px);opacity:0}}
+@keyframes snow-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes bolt-flash{0%,90%,100%{opacity:0}92%{opacity:1}94%{opacity:0.5}96%{opacity:0.9}98%{opacity:0}}
+@keyframes fog-drift{0%,100%{transform:translateX(0);opacity:0.6}50%{transform:translateX(5px);opacity:1}}
+@keyframes moon-glow{0%,100%{filter:drop-shadow(0 0 4px rgba(148,163,184,0.6))}50%{filter:drop-shadow(0 0 10px rgba(148,163,184,0.9))}}
+@keyframes sun-rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes rain-fall{0%{top:-10%;opacity:0}5%{opacity:0.8}92%{opacity:0.5}100%{top:110%;transform:translateX(-18px);opacity:0}}
+@keyframes star-twinkle{0%,100%{opacity:0.2;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes lightning-strike{0%,82%,100%{opacity:0;background:rgba(180,210,255,0)}83%{opacity:1;background:rgba(200,230,255,0.2)}84%{opacity:0}85%{opacity:0.7;background:rgba(210,230,255,0.14)}86%,89%{opacity:0}90%{opacity:0.4;background:rgba(180,210,255,0.07)}91%{opacity:0}}
+@keyframes snow-fall{0%{top:-5%;transform:translateX(0) rotate(0deg) scale(1);opacity:0}8%{opacity:1}90%{opacity:0.8}100%{top:110%;transform:translateX(var(--sx,40px)) rotate(720deg) scale(0.8);opacity:0}}
+@keyframes aurora-wave{0%,100%{opacity:0.4;transform:skewX(0deg)}33%{opacity:0.9;transform:skewX(3deg)}66%{opacity:0.6;transform:skewX(-2deg)}}
+@keyframes splash-pulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
+@keyframes reflection-shimmer{0%,100%{opacity:0.3}50%{opacity:0.8}}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+@keyframes count-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes alert-slide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes badge-pop{0%{transform:scale(0.8);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ── App Layout ── */
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:48px 28px 90px}
+@media(max-width:600px){.app{padding:20px 14px 60px}}
+
+/* ── Search ── */
+.search-wrap{position:relative;margin-bottom:36px;animation:fadeUp 0.5s ease both;isolation:isolate;z-index:200}
+.search-inner{position:relative;display:flex;align-items:center}
+.top-bar{position:absolute;top:-42px;right:0;display:flex;gap:6px;align-items:center}
+.top-bar-label{font-size:11px;color:var(--text3);letter-spacing:0.5px;margin-right:4px}
+.search-icon{position:absolute;left:18px;color:var(--text3);pointer-events:none;z-index:1;display:flex;align-items:center}
+.search-input{width:100%;padding:15px 130px 15px 50px;background:rgba(255,255,255,0.05);backdrop-filter:blur(var(--blur-sm));-webkit-backdrop-filter:blur(var(--blur-sm));border:1px solid var(--border2);border-radius:var(--r3);color:var(--text);font-size:15px;font-family:var(--font-data);font-weight:400;letter-spacing:0.2px;outline:none;transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;box-shadow:var(--inner-glow),var(--shadow-sm)}
+.search-input::placeholder{color:var(--text3)}
+.search-input:focus{border-color:var(--border-glow);background:rgba(255,255,255,0.07);box-shadow:var(--inner-glow),0 0 0 3px rgba(99,160,255,0.1),var(--shadow-sm)}
+.search-clear{position:absolute;right:110px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:color 0.15s,background 0.15s}
+.search-clear:hover{color:var(--text);background:rgba(255,255,255,0.08)}
+.gps-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(45,212,191,0.1);border:1px solid rgba(45,212,191,0.3);border-radius:18px;color:var(--teal);font-family:var(--font-data);font-size:12px;font-weight:500;cursor:pointer;transition:background 0.18s,border-color 0.18s,transform 0.15s;white-space:nowrap;letter-spacing:0.3px}
+.gps-btn:hover{background:rgba(45,212,191,0.18);border-color:rgba(45,212,191,0.5);transform:translateY(-50%) scale(1.04)}
+.gps-btn.loading{opacity:0.7;pointer-events:none}
+.gps-btn .gps-icon{display:flex;align-items:center;line-height:1;transition:transform 0.4s}
+.gps-btn.loading .gps-icon{animation:spin 0.8s linear infinite}
+.icon-btn{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;color:var(--text2);cursor:pointer;padding:7px 10px;font-size:13px;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+.icon-btn:hover{background:rgba(255,255,255,0.1);border-color:var(--border2);color:var(--text)}
+.icon-btn.active{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:var(--blue)}
+.unit-badge{display:inline-flex;align-items:center;gap:2px;font-family:var(--font-mono);font-size:11px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.unit-opt{padding:4px 8px;cursor:pointer;color:var(--text3);transition:all 0.15s}
+.unit-opt.on{background:rgba(96,165,250,0.15);color:var(--blue)}
+.search-suggestions{position:absolute;top:calc(100% + 10px);left:0;right:0;background:rgba(6,9,26,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(99,160,255,0.25);border-radius:var(--r2);overflow:hidden;z-index:9999;box-shadow:0 20px 50px rgba(0,0,0,0.9),0 5px 15px rgba(0,0,0,0.5);display:none;animation:fadeUp 0.2s ease-out both}
+.search-suggestions.open{display:contents}
+.suggestion-item{padding:12px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background 0.12s;position:relative}
+.suggestion-item+.suggestion-item::before{content:'';position:absolute;top:0;left:18px;right:18px;height:1px;background:rgba(255,255,255,0.05)}
+.suggestion-item:hover,.suggestion-item.focused{background:rgba(96,165,250,0.12)}
+.suggestion-pin-wrap{width:34px;height:34px;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;transition:background 0.12s}
+.suggestion-item:hover .suggestion-pin-wrap,.suggestion-item.focused .suggestion-pin-wrap{background:rgba(96,165,250,0.2)}
+.suggestion-pin{color:var(--text3);display:flex}
+.suggestion-item:hover .suggestion-pin,.suggestion-item.focused .suggestion-pin{color:var(--blue)}
+.suggestion-text{flex:1;min-width:0}
+.suggestion-name{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.suggestion-region{font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.suggestion-meta{font-size:11px;color:rgba(96,165,250,0.7);background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.15);border-radius:20px;padding:2px 9px;flex-shrink:0;white-space:nowrap;font-family:var(--font-mono)}
+.search-loading{padding:16px 20px;color:var(--text3);font-size:13px;display:flex;align-items:center;gap:10px}
+.mini-spin{width:14px;height:14px;border:1.5px solid rgba(96,165,250,0.2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+.search-no-results{padding:16px 20px;color:var(--text3);font-size:13px;display:flex;align-items:center;gap:10px}
+.favorites-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:20px}
+.fav-chip{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;padding:5px 12px;cursor:pointer;font-family:var(--font-data);transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
+.fav-chip:hover{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:var(--text)}
+.fav-chip.active{background:rgba(96,165,250,0.15);border-color:rgba(96,165,250,0.4);color:var(--blue)}
+.fav-chip .rm{color:var(--text3);font-size:14px;cursor:pointer;transition:color 0.15s}
+.fav-chip .rm:hover{color:var(--danger)}
+.fav-star{background:none;border:none;cursor:pointer;font-size:22px;color:var(--text3);transition:color 0.2s,transform 0.2s;padding:2px 4px;line-height:1}
+.fav-star:hover{color:var(--gold);transform:scale(1.2)}
+.fav-star.saved{color:var(--gold);text-shadow:0 0 12px rgba(251,191,36,0.5)}
+@media(max-width:400px){.gps-btn span.gps-label{display:none}.search-input{padding-right:60px}.search-clear{right:54px}}
+
+/* ── Alert Banner ── */
+.alerts-section{margin-bottom:20px}
+.alert-item{display:flex;align-items:flex-start;gap:12px;border-radius:14px;padding:12px 16px;font-size:13px;line-height:1.5;letter-spacing:0.2px;animation:alert-slide 0.3s ease both;margin-bottom:8px;position:relative;overflow:hidden}
+.alert-item::before{content:'';position:absolute;inset:0;background:inherit;filter:blur(0);opacity:0.08}
+.alert-item.danger{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);color:rgba(248,113,113,0.95)}
+.alert-item.warn{background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);color:rgba(251,146,60,0.95)}
+.alert-item.info{background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.22);color:rgba(147,197,253,0.9)}
+.alert-item.success{background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.22);color:rgba(74,222,128,0.9)}
+.alert-icon{font-size:18px;flex-shrink:0;line-height:1.3}
+.alert-body{flex:1}
+.alert-title{font-weight:600;margin-bottom:2px}
+.alert-desc{font-size:12px;opacity:0.8;margin-top:1px}
+.alert-close{background:none;border:none;color:inherit;opacity:0.5;cursor:pointer;font-size:16px;padding:0 2px;flex-shrink:0;transition:opacity 0.15s;line-height:1;align-self:flex-start}
+.alert-close:hover{opacity:1}
+
+/* ── Header ── */
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;animation:fadeUp 0.6s ease both}
+.location-head{display:flex;align-items:center;gap:10px}
+.location-name{font-family:var(--font-display);font-size:54px;font-weight:700;letter-spacing:-2px;line-height:1;color:var(--text);text-shadow:0 2px 20px rgba(96,165,250,0.15)}
+.location-sub{font-size:12px;color:var(--text2);margin-top:8px;font-weight:400;letter-spacing:2.5px;text-transform:uppercase;opacity:0.7}
+.now-temp{text-align:right}
+.current-temp{font-family:var(--font-display);font-size:88px;font-weight:700;line-height:1;letter-spacing:-4px;background:linear-gradient(135deg,#eef0ff 30%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 30px rgba(251,191,36,0.2))}
+.current-icon{text-align:right;margin-bottom:4px}
+.current-cond{font-size:13px;color:var(--text2);text-align:right;margin-top:6px;letter-spacing:0.3px}
+@media(max-width:600px){.header{flex-direction:column;gap:12px;margin-bottom:28px}.location-name{font-size:42px;letter-spacing:-1.5px}.now-temp{text-align:left;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.current-temp{font-size:64px}.current-cond{text-align:left;margin-top:0}}
+
+/* ── Metrics Grid ── */
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;animation:fadeUp 0.6s 0.08s ease both}
+@media(max-width:640px){.metrics-grid{grid-template-columns:repeat(2,1fr);gap:10px}}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:18px 18px 16px;box-shadow:var(--shadow-sm),var(--inner-glow);transition:background 0.2s,border-color 0.2s,transform 0.2s;position:relative;overflow:hidden;cursor:default}
+.metric-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.02) 0%,transparent 60%);pointer-events:none}
+.metric-card:hover{background:var(--card-hover);border-color:var(--border2);transform:translateY(-2px)}
+.metric-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
+.metric-label svg{opacity:0.5}
+.metric-value{font-family:var(--font-display);font-size:32px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-1px}
+.metric-value span{font-size:14px;color:var(--text3);font-weight:400;letter-spacing:0;margin-left:2px}
+.metric-sub{font-size:11px;color:var(--text2);margin-top:6px}
+.metric-bar{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;margin-top:10px;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:2px;transition:width 1s ease}
+.metric-trend{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 6px;border-radius:10px;margin-top:6px;font-family:var(--font-mono)}
+.metric-trend.up{background:rgba(74,222,128,0.1);color:var(--success)}
+.metric-trend.down{background:rgba(248,113,113,0.1);color:var(--danger)}
+.metric-trend.stable{background:rgba(255,255,255,0.06);color:var(--text3)}
+
+/* ── Outfit Card ── */
+.outfit-card{display:flex;align-items:center;gap:18px;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:18px 22px;margin-bottom:24px;animation:fadeUp 0.6s 0.1s ease both;box-shadow:var(--shadow-sm),var(--inner-glow)}
+.outfit-emoji{font-size:36px;width:56px;height:56px;flex-shrink:0;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:var(--inner-glow)}
+.outfit-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.outfit-text{font-size:14px;color:var(--text2);line-height:1.5}
+.outfit-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.outfit-tag{font-size:11px;color:var(--text2);background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:20px;padding:3px 10px}
+
+/* ── Section Label ── */
+.section-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;margin-top:4px;font-weight:500}
+
+/* ── Best Window ── */
+.best-window{background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.2);border-radius:12px;padding:11px 16px;margin-bottom:14px;font-size:13px;color:rgba(45,212,191,0.9);line-height:1.5}
+.best-window strong{color:var(--teal)}
+
+/* ── Hourly Strip ── */
+.hourly-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:24px;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.08) transparent}
+.hourly-scroll::-webkit-scrollbar{height:4px}
+.hourly-scroll::-webkit-scrollbar-track{background:transparent}
+.hourly-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
+.hour-card{flex-shrink:0;scroll-snap-align:start;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px 14px;text-align:center;cursor:pointer;min-width:68px;transition:background 0.18s,border-color 0.18s,transform 0.15s;box-shadow:var(--shadow-sm)}
+.hour-card:hover{background:var(--card-hover);border-color:var(--border2);transform:translateY(-2px)}
+.hour-card.active{background:rgba(96,165,250,0.12);border-color:rgba(96,165,250,0.35)}
+.hour-card.now{background:rgba(96,165,250,0.14);border-color:rgba(96,165,250,0.4)}
+.hour-time{font-size:11px;color:var(--text3);font-family:var(--font-mono);font-weight:400}
+.hour-card.now .hour-time{color:var(--blue);font-weight:500}
+.hour-icon{font-size:24px;margin:8px 0 6px;line-height:1;display:flex;justify-content:center}
+.hour-temp{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--text)}
+.hour-feel{font-size:10px;color:var(--text3);margin-top:2px}
+.hour-prec{font-size:10px;color:var(--rain);margin-top:2px;min-height:14px}
+.hour-day-sep{flex-shrink:0;align-self:center;color:var(--text3);font-size:16px;padding:0 4px;opacity:0.5}
+
+/* ── Week Summary ── */
+.week-summary-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px 22px;margin-bottom:24px;animation:fadeUp 0.6s 0.15s ease both;box-shadow:var(--shadow-sm),var(--inner-glow)}
+.week-summary-title{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;font-weight:500}
+.week-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:600px){.week-summary-grid{grid-template-columns:repeat(2,1fr)}}
+.week-summary-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.wsi-icon{font-size:13px;line-height:1}
+.week-summary-value{font-family:var(--font-display);font-size:20px;font-weight:700;line-height:1.1;letter-spacing:-0.5px}
+.week-summary-value.hot{color:var(--gold)}
+.week-summary-value.cold{color:#93c5fd}
+.week-summary-value.rain{color:var(--rain)}
+.week-summary-value.chance{color:var(--teal)}
+.week-summary-day{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:1px}
+
+/* ── 10-Day Grid ── */
+.days-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:24px;animation:fadeUp 0.6s 0.18s ease both}
+.day-card{display:grid;grid-template-columns:100px 50px 1fr 80px;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:13px 18px;cursor:pointer;transition:background 0.18s,border-color 0.18s,transform 0.15s;box-shadow:var(--shadow-sm)}
+.day-card:hover{background:var(--card-hover);border-color:var(--border2);transform:translateX(3px)}
+.day-card.active{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3)}
+.day-name{font-size:14px;font-weight:600;color:var(--text);display:block}
+.day-date{font-size:11px;color:var(--text3);font-family:var(--font-mono)}
+.day-icon{font-size:26px;line-height:1;display:flex}
+.day-desc{font-size:12px;color:var(--text2)}
+.day-prec{font-size:12px;color:var(--rain)}
+.day-prec.no-rain{color:transparent}
+.day-temps{text-align:right}
+.day-low{font-family:var(--font-display);font-size:16px;font-weight:400;color:var(--text2)}
+.day-high{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text);margin-left:6px}
+@media(max-width:600px){.day-card{grid-template-columns:80px 40px 1fr 70px;gap:8px;padding:11px 14px}.day-name{font-size:13px}}
+
+/* ── Precip Total ── */
+.precip-total-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;background:rgba(96,165,250,0.05);border:1px solid rgba(96,165,250,0.18);border-radius:var(--r2);padding:20px 22px;margin-bottom:24px;animation:fadeUp 0.6s 0.2s ease both;box-shadow:var(--shadow-sm),var(--inner-glow)}
+.precip-total-icon{font-size:32px;width:52px;height:52px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.18);border-radius:14px;display:flex;align-items:center;justify-content:center}
+.precip-total-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.precip-total-value{font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.precip-total-value span{font-size:14px;color:var(--text3);font-weight:400;margin-left:2px}
+.precip-total-sub{font-size:12px;color:var(--text2);margin-top:4px}
+.precip-rainy-days{font-size:13px;color:var(--text2);margin-bottom:8px}
+.precip-rainy-days strong{color:var(--text)}
+.precip-bar-wrap{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:5px}
+.precip-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:2px;transition:width 1.2s ease}
+.precip-bar-label{font-size:10px;color:var(--text3)}
+@media(max-width:600px){.precip-total-card{grid-template-columns:auto 1fr}}
+
+/* ── Air Quality Card ── */
+.aqi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px 22px;margin-bottom:24px;animation:fadeUp 0.6s 0.21s ease both;box-shadow:var(--shadow-sm),var(--inner-glow)}
+.aqi-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.aqi-index{display:flex;align-items:center;gap:12px}
+.aqi-circle{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:2px solid;box-shadow:0 0 20px}
+.aqi-val{font-family:var(--font-display);font-size:20px;font-weight:700;line-height:1}
+.aqi-lbl-sm{font-size:8px;letter-spacing:1px;text-transform:uppercase;opacity:0.7}
+.aqi-info{}
+.aqi-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.aqi-status{font-size:16px;font-weight:600;margin-bottom:2px}
+.aqi-desc-text{font-size:12px;color:var(--text2)}
+.aqi-pollutants{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+@media(max-width:500px){.aqi-pollutants{grid-template-columns:repeat(2,1fr)}}
+.aqi-poll-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px}
+.aqi-poll-name{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.aqi-poll-val{font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--text)}
+.aqi-poll-unit{font-size:9px;color:var(--text3);margin-left:2px}
+.aqi-bar-row{margin-top:14px}
+.aqi-scale{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:4px}
+.aqi-scale-seg{flex:1;transition:opacity 0.3s}
+.aqi-scale-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);letter-spacing:0.5px}
+.aqi-pointer-wrap{position:relative;height:12px;margin-top:-2px;margin-bottom:2px}
+.aqi-pointer{position:absolute;width:2px;height:12px;background:white;border-radius:1px;transform:translateX(-50%);transition:left 0.8s ease}
+.aqi-pointer::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:6px;height:6px;background:white;border-radius:50%}
+
+/* ── Charts ── */
+.hourly-chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:22px 22px 16px;margin-bottom:24px;animation:fadeUp 0.6s 0.25s ease both;box-shadow:var(--shadow-sm),var(--inner-glow)}
+.hourly-chart-wrap{position:relative;width:100%;height:160px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;animation:fadeUp 0.6s 0.27s ease both}
+@media(max-width:700px){.charts-row{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px 18px 14px;box-shadow:var(--shadow-sm),var(--inner-glow)}
+.chart-title,.hourly-chart-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;font-weight:500}
+.chart-wrap{position:relative;width:100%;height:180px}
+
+/* ── Wind Chart ── */
+.wind-chart-card{background:linear-gradient(135deg,rgba(45,212,191,0.07) 0%,rgba(20,184,166,0.03) 100%);border:1px solid rgba(45,212,191,0.2);border-radius:var(--r2);box-shadow:var(--shadow-sm),var(--inner-glow);padding:22px 22px 16px;margin-bottom:24px;animation:fadeUp 0.6s 0.3s ease both;position:relative;overflow:hidden}
+.wind-chart-card::before{content:'';position:absolute;top:-50px;right:-50px;width:220px;height:220px;background:radial-gradient(circle,rgba(45,212,191,0.08) 0%,transparent 70%);pointer-events:none}
+.wind-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.wind-chart-subtitle{font-size:10px;color:var(--text3);letter-spacing:0.5px;margin-top:3px}
+.wind-now-badge{display:flex;align-items:center;gap:12px;background:rgba(45,212,191,0.08);border:1px solid rgba(45,212,191,0.22);border-radius:14px;padding:10px 16px}
+.wind-compass{font-size:24px;color:var(--teal);transition:transform 0.5s ease;line-height:1;width:28px;text-align:center}
+.wind-now-val{font-family:var(--font-mono);font-size:24px;font-weight:400;color:var(--teal);line-height:1}
+.wind-now-val span{font-size:12px;color:rgba(45,212,191,0.6);margin-left:3px}
+.wind-now-dir{font-size:10px;color:var(--text3);margin-top:2px;letter-spacing:1.5px;text-transform:uppercase}
+.wind-chart-wrap{position:relative;width:100%;height:180px}
+
+/* ── Sun Arc ── */
+.sun-section{background:linear-gradient(135deg,rgba(251,191,36,0.07) 0%,rgba(245,158,11,0.03) 100%);border:1px solid rgba(251,191,36,0.2);border-radius:var(--r2);box-shadow:var(--shadow-sm),var(--inner-glow);padding:28px 32px;margin-bottom:24px;animation:fadeUp 0.6s 0.32s ease both;display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;position:relative;overflow:hidden}
+.sun-section::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:300px;height:200px;background:radial-gradient(circle,rgba(251,191,36,0.08) 0%,transparent 70%);pointer-events:none}
+.sun-info{display:flex;flex-direction:column}
+.sun-label{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.sun-time{font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--gold);letter-spacing:-0.5px;line-height:1}
+.sun-duration{font-size:11px;color:var(--text3);margin-top:6px;letter-spacing:1px}
+.sun-arc-wrap{display:flex;justify-content:center}
+.arc-svg .arc-path{filter:drop-shadow(0 0 6px rgba(251,191,36,0.35))}
+.arc-svg .arc-track{opacity:0.12}
+.sun-icon-svg{filter:drop-shadow(0 0 10px rgba(251,191,36,0.8))}
+@media(max-width:600px){.sun-section{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;padding:20px 18px;gap:12px}.sun-arc-wrap{grid-column:1/-1;order:-1}.sun-time{font-size:22px}}
+
+/* ── Moon Phase ── */
+.moon-phase-card{background:linear-gradient(135deg,rgba(148,163,184,0.06) 0%,rgba(100,116,139,0.03) 100%);border:1px solid rgba(148,163,184,0.18);border-radius:var(--r2);padding:20px 22px;margin-bottom:24px;animation:fadeUp 0.6s 0.33s ease both;box-shadow:var(--shadow-sm),var(--inner-glow);display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.moon-visual{display:flex;flex-direction:column;align-items:center;gap:6px}
+.moon-svg-wrap{position:relative;width:60px;height:60px;animation:moon-glow 4s ease infinite}
+.moon-details{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.moon-detail-item{}
+.moon-detail-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
+.moon-detail-val{font-size:16px;font-weight:600;color:var(--text);font-family:var(--font-display)}
+.moon-detail-sub{font-size:10px;color:var(--text3)}
+.moon-phase-name{font-size:11px;color:rgba(148,163,184,0.8);letter-spacing:1px;text-align:center}
+
+/* ── Radar / Windy ── */
+.windy-section{margin-bottom:24px;animation:fadeUp 0.6s 0.35s ease both}
+.windy-card{background:var(--card);border:1px solid var(--border);backdrop-filter:blur(var(--blur-lg)) saturate(1.2);-webkit-backdrop-filter:blur(var(--blur-lg)) saturate(1.2);border-radius:var(--r2);box-shadow:var(--shadow),var(--inner-glow);overflow:hidden;position:relative}
+.windy-card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border)}
+.windy-card-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:10px}
+.windy-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse-dot 2s ease infinite}
+.windy-frame-wrap{position:relative;width:100%;height:480px}
+.windy-frame-wrap iframe{width:100%;height:100%;border:none;display:block;border-radius:0 0 var(--r2) var(--r2)}
+.windy-loader{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg2);gap:16px;border-radius:0 0 var(--r2) var(--r2);transition:opacity 0.4s;pointer-events:none}
+.windy-loader.hidden{opacity:0}
+.windy-loader-text{font-size:12px;color:var(--text2);letter-spacing:2px;text-transform:uppercase}
+
+/* ── Loading / Error ── */
+.loading{display:flex;align-items:center;justify-content:center;height:300px;flex-direction:column;gap:18px}
+.spinner{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite}
+.loading-text{font-size:12px;color:var(--text2);letter-spacing:2px;text-transform:uppercase}
+.error-msg{color:var(--danger);font-size:14px;padding:24px;text-align:center}
+
+/* ── Light Mode ── */
+body.light{--bg:#e8ecf6;--bg2:#dde3f0;--bg3:#d0d8ec;--card:rgba(255,255,255,0.7);--card-hover:rgba(255,255,255,0.85);--border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);--text:#111827;--text2:rgba(17,24,39,0.65);--text3:rgba(17,24,39,0.38)}
+body.light #weather-bg{opacity:0.4!important}
+
+/* ── Card Base ── */
+.card-glass{background:var(--card);backdrop-filter:blur(var(--blur-lg)) saturate(1.4);-webkit-backdrop-filter:blur(var(--blur-lg)) saturate(1.4);border:1px solid var(--border);border-radius:var(--r2);box-shadow:var(--shadow),var(--inner-glow);position:relative;overflow:hidden}
+.card-glass::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.12) 50%,transparent 100%)}
+
+/* ── Nowcast Detail ── */
+.nowcast-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;animation:fadeUp 0.6s 0.12s ease both}
+@media(max-width:500px){.nowcast-grid{grid-template-columns:1fr}}
+.nowcast-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.nowcast-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.nowcast-texts{}
+.nowcast-label{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.nowcast-value{font-size:16px;font-weight:600;color:var(--text);font-family:var(--font-display)}
+.nowcast-extra{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* ── Responsive ── */
+@media(prefers-reduced-motion:reduce){.noise{display:none}.glow-orb{filter:blur(50px)}}
+</style>
+</head>
+<body>
+
+<div id="weather-bg"></div>
+<div class="noise"></div>
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+<div class="glow-orb c"></div>
+
+<div class="app" style="padding-bottom:0">
+  <div class="search-wrap" id="searchWrap">
+    <div class="search-inner">
+      <div class="top-bar">
+        <span class="top-bar-label" id="liveClock2"></span>
+        <div class="unit-badge" title="Unitate temperatură">
+          <span class="unit-opt on" id="unitC" onclick="setUnit('C')">°C</span>
+          <span class="unit-opt" id="unitF" onclick="setUnit('F')">°F</span>
+        </div>
+        <button class="icon-btn" id="themeBtn" onclick="cycleTheme()" title="Schimbă tema">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><line x1="8" y1="1" x2="8" y2="3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="1" y1="8" x2="3" y2="8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" id="shareBtn" onclick="shareWeather()" title="Distribuie">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="12" cy="3" r="1.8" stroke="currentColor" stroke-width="1.3"/><circle cx="12" cy="13" r="1.8" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="8" r="1.8" stroke="currentColor" stroke-width="1.3"/><line x1="10.3" y1="4" x2="5.7" y2="7" stroke="currentColor" stroke-width="1.3"/><line x1="5.7" y1="9" x2="10.3" y2="12" stroke="currentColor" stroke-width="1.3"/></svg>
+        </button>
+        <button class="icon-btn" id="refreshBtn" onclick="refreshWeather()" title="Actualizează">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 8 3M8 3l3 3M8 3l3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <span class="search-icon">
+        <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M11.5 11.5L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Caută un oraș sau localitate…" autocomplete="off" spellcheck="false">
+      <button class="search-clear" id="searchClear" title="Șterge" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="gps-btn" id="gpsBtn" onclick="useGPSLocation()">
+        <span class="gps-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="6" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.5v1M7 10.5v1M1.5 6h1M10.5 6h1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7 8.5c0 0-3 3.5 0 3.5s0-3.5 0-3.5z" fill="currentColor"/></svg>
+        </span>
+        <span class="gps-label">Locația mea</span>
+      </button>
+    </div>
+    <div class="search-suggestions" id="searchSuggestions"></div>
+    <div class="favorites-row" id="favoritesRow"></div>
+  </div>
+</div>
+
+<div class="app" id="app" style="padding-top:0">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Se încarcă datele meteo…</div>
+  </div>
+</div>
+
+<script>
+// ─── State ───
+const state = {
+  lat:44.4268, lon:26.1025, tz:'Europe/Bucharest',
+  city:'București', country:'Romania',
+  data:null, selectedDay:0, selectedHour:null, unit:'C'
+};
+
+function setState(p){ Object.assign(state,p); }
+
+let precipChart=null, tempChart=null, hourlyChart=null, windChart=null;
+let searchTimeout=null, focusedSuggestion=-1, clockInterval=null;
+
+// ─── Utilities ───
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ft(v){ return state.unit==='F'?Math.round(v*9/5+32):Math.round(v); }
+function ftLabel(){ return state.unit==='F'?'°F':'°C'; }
+
+function nowLocalISO(){
+  const now=new Date();
+  const tz=state.tz||'UTC';
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t)?.value??'00';
+  const dateStr=`${get('year')}-${get('month')}-${get('day')}`;
+  const hourStr=get('hour')==='24'?'00':get('hour');
+  return{now,dateStr,hourStr,currentHourStr:`${dateStr}T${hourStr}`};
+}
+
+function setUnit(u){
+  state.unit=u;
+  document.getElementById('unitC').classList.toggle('on',u==='C');
+  document.getElementById('unitF').classList.toggle('on',u==='F');
+  if(state.data) render(state.data);
+}
+
+function cycleTheme(){
+  document.body.classList.toggle('light');
+}
+
+async function shareWeather(){
+  const txt=`Vremea în ${state.city}: ${state.data?ft(state.data.current.temperature_2m)+ftLabel():'...'} — MeteoRo`;
+  if(navigator.share){
+    try{ await navigator.share({title:'MeteoRo',text:txt,url:location.href}); return; }catch(e){}
+  }
+  try{ await navigator.clipboard.writeText(txt); showToast('✓ Copiat în clipboard!'); }catch(e){ showToast('Partajare indisponibilă'); }
+}
+
+function refreshWeather(){
+  const btn=document.getElementById('refreshBtn');
+  btn.style.animation='spin 0.6s linear';
+  setTimeout(()=>btn.style.animation='',800);
+  loadWeather();
+}
+
+function showToast(msg){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(10,15,30,0.95);border:1px solid rgba(255,255,255,0.1);color:#eef0ff;font-size:13px;padding:10px 20px;border-radius:20px;z-index:9999;animation:fadeUp 0.3s ease;backdrop-filter:blur(10px)';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+// ─── SVG Icons ───
+const SVG={
+  sun:`<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><g style="animation:sun-rotate 20s linear infinite;transform-origin:22px 22px"><line x1="22" y1="4" x2="22" y2="8" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/><line x1="22" y1="36" x2="22" y2="40" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/><line x1="4" y1="22" x2="8" y2="22" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/><line x1="36" y1="22" x2="40" y2="22" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/><line x1="8.69" y1="8.69" x2="11.52" y2="11.52" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.7"/><line x1="32.48" y1="32.48" x2="35.31" y2="35.31" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.7"/><line x1="8.69" y1="35.31" x2="11.52" y2="32.48" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.7"/><line x1="32.48" y1="11.52" x2="35.31" y2="8.69" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.7"/></g><circle cx="22" cy="22" r="9.5" fill="#fbbf24" style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.8))"/><circle cx="22" cy="22" r="9.5" fill="url(#sunGrad)" style="animation:ray-pulse 3s ease infinite;transform-origin:22px 22px"/><defs><radialGradient id="sunGrad" cx="40%" cy="35%"><stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#f59e0b"/></radialGradient></defs></svg>`,
+  moon:`<svg width="44" height="44" viewBox="0 0 44 44" fill="none" style="animation:moon-glow 4s ease infinite"><path d="M26 10.5C22 11.5 18 15.5 18 21.5C18 28.5 23.5 33 30 31.5C28 34.5 24.5 36.5 20.5 36.5C14 36.5 8.5 31 8.5 24.5C8.5 17 14 11.5 20.5 11.5C22.5 11.5 24.5 12 26 13" fill="#cbd5e1" opacity="0.95"/><circle cx="33" cy="11" r="1.2" fill="white" opacity="0.9"/><circle cx="37" cy="19" r="0.8" fill="white" opacity="0.7"/></svg>`,
+  partlyCloudyDay:`<svg width="48" height="44" viewBox="0 0 48 44" fill="none"><g transform="translate(2,0)" style="animation:ray-pulse 3s ease infinite;transform-origin:16px 16px"><circle cx="16" cy="16" r="7.5" fill="#fbbf24" style="filter:drop-shadow(0 0 6px rgba(251,191,36,0.7))"/><line x1="16" y1="5" x2="16" y2="8" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/><line x1="16" y1="24" x2="16" y2="27" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/><line x1="5" y1="16" x2="8" y2="16" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/><line x1="24" y1="16" x2="27" y2="16" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></g><g style="animation:cloud-drift 6s ease-in-out infinite"><rect x="8" y="24" width="36" height="16" rx="8" fill="url(#cloudGradDay)"/><path d="M14 28C14 24.69 16.69 22 20 22C21.86 22 23.54 22.8 24.72 24.08C25.44 23.41 26.4 23 27.5 23C29.71 23 31.5 24.79 31.5 27C31.5 27.35 31.45 27.69 31.37 28H14.05Z" fill="url(#cloudGradDay)"/><rect x="10" y="27" width="32" height="13" rx="6.5" fill="url(#cloudGradDay)"/><defs><linearGradient id="cloudGradDay" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.22)"/><stop offset="100%" stop-color="rgba(220,230,255,0.14)"/></linearGradient></defs></g></svg>`,
+  partlyCloudyNight:`<svg width="48" height="44" viewBox="0 0 48 44" fill="none"><path d="M24 10C20.5 10.8 18 14.2 18 18C18 22.4 21.6 26 26 26C24.4 28.2 21.8 29.5 18.9 29.5C13.9 29.5 9.8 25.4 9.8 20.4C9.8 15.4 13.9 11.3 18.9 11.3C20.6 11.3 22.2 11.8 24 12.8" fill="#94a3b8" opacity="0.9" style="animation:moon-glow 4s ease infinite"/><g style="animation:cloud-drift 6s ease-in-out infinite"><path d="M16 30C16 26.69 18.69 24 22 24C23.86 24 25.54 24.8 26.72 26.08C27.44 25.41 28.4 25 29.5 25C31.71 25 33.5 26.79 33.5 29C33.5 29.35 33.45 29.69 33.37 30H16.05Z" fill="url(#cloudGradNight)"/><rect x="12" y="29" width="30" height="12" rx="6" fill="url(#cloudGradNight)"/><defs><linearGradient id="cloudGradNight" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(148,163,184,0.3)"/><stop offset="100%" stop-color="rgba(100,120,160,0.18)"/></linearGradient></defs></g></svg>`,
+  cloudy:`<svg width="48" height="40" viewBox="0 0 48 40" fill="none"><g style="animation:cloud-drift 8s ease-in-out infinite"><path d="M10 24C10 19.58 13.58 16 18 16C20.54 16 22.8 17.16 24.3 19C25.24 18.37 26.36 18 27.56 18C30.83 18 33.5 20.65 33.5 23.94C33.5 24.3 33.46 24.65 33.39 25H10.1Z" fill="rgba(180,195,220,0.2)"/><rect x="6" y="27" width="36" height="13" rx="6.5" fill="url(#cloudGradCloudy)"/><defs><linearGradient id="cloudGradCloudy" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(180,200,230,0.25)"/><stop offset="100%" stop-color="rgba(140,170,210,0.15)"/></linearGradient></defs></g></svg>`,
+  overcast:`<svg width="48" height="38" viewBox="0 0 48 38" fill="none"><g style="animation:cloud-drift 10s ease-in-out infinite"><path d="M6 28C6 22.48 10.48 18 16 18C19.5 18 22.62 19.74 24.56 22.4C25.6 21.52 26.96 21 28.44 21C32.08 21 35 23.92 35 27.56C35 27.71 34.99 27.85 34.98 28H6Z" fill="rgba(120,145,180,0.2)"/><rect x="4" y="27" width="40" height="11" rx="5.5" fill="url(#cloudGradOvercast)"/><defs><linearGradient id="cloudGradOvercast" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(120,145,185,0.3)"/><stop offset="100%" stop-color="rgba(90,120,165,0.18)"/></linearGradient></defs></g></svg>`,
+  drizzle:`<svg width="46" height="48" viewBox="0 0 46 48" fill="none"><g style="animation:cloud-drift 7s ease-in-out infinite"><rect x="8" y="12" width="30" height="13" rx="6.5" fill="url(#cloudGradDrizzle)"/></g><g style="animation:rain-drip 1.1s ease-in-out infinite"><line x1="18" y1="32" x2="14" y2="44" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/></g><g style="animation:rain-drip 1.1s ease-in-out infinite;animation-delay:0.4s"><line x1="26" y1="30" x2="22" y2="42" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/></g><g style="animation:rain-drip 1.1s ease-in-out infinite;animation-delay:0.8s"><line x1="34" y1="32" x2="30" y2="44" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/></g><defs><linearGradient id="cloudGradDrizzle" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(148,163,184,0.35)"/><stop offset="100%" stop-color="rgba(100,130,175,0.22)"/></linearGradient></defs></svg>`,
+  rain:`<svg width="46" height="50" viewBox="0 0 46 50" fill="none"><g style="animation:cloud-drift 6s ease-in-out infinite"><path d="M8 20C8 15.58 11.58 12 16 12C18.76 12 21.24 13.2 22.9 15.14C23.9 14.44 25.12 14 26.44 14C30.09 14 33 16.91 33 20.56Z" fill="rgba(100,130,180,0.25)"/><rect x="6" y="19" width="34" height="13" rx="6.5" fill="url(#cloudGradRain)"/></g><g style="animation:rain-drip 0.85s ease-in-out infinite"><line x1="15" y1="37" x2="11" y2="48" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" opacity="0.85"/></g><g style="animation:rain-drip 0.85s ease-in-out infinite;animation-delay:0.28s"><line x1="23" y1="35" x2="19" y2="46" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" opacity="0.8"/></g><g style="animation:rain-drip 0.85s ease-in-out infinite;animation-delay:0.56s"><line x1="31" y1="37" x2="27" y2="48" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" opacity="0.85"/></g><defs><linearGradient id="cloudGradRain" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(80,105,165,0.4)"/><stop offset="100%" stop-color="rgba(60,90,150,0.28)"/></linearGradient></defs></svg>`,
+  heavyRain:`<svg width="46" height="52" viewBox="0 0 46 52" fill="none"><g style="animation:cloud-drift 5s ease-in-out infinite"><path d="M7 18C7 12.48 11.48 8 17 8C20.18 8 23.02 9.52 24.88 11.9C26.04 10.74 27.62 10 29.38 10C33.04 10 36 12.96 36 16.62Z" fill="rgba(60,80,150,0.3)"/><rect x="5" y="17" width="36" height="13" rx="6.5" fill="url(#cloudGradHeavy)"/></g><g style="animation:rain-drip 0.6s ease-in-out infinite"><line x1="14" y1="35" x2="9" y2="50" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/></g><g style="animation:rain-drip 0.6s ease-in-out infinite;animation-delay:0.2s"><line x1="22" y1="33" x2="17" y2="48" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/></g><g style="animation:rain-drip 0.6s ease-in-out infinite;animation-delay:0.4s"><line x1="30" y1="35" x2="25" y2="50" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/></g><g style="animation:rain-drip 0.6s ease-in-out infinite;animation-delay:0.1s"><line x1="38" y1="35" x2="33" y2="50" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" opacity="0.75"/></g><defs><linearGradient id="cloudGradHeavy" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(50,70,145,0.45)"/><stop offset="100%" stop-color="rgba(35,55,130,0.32)"/></linearGradient></defs></svg>`,
+  storm:`<svg width="48" height="52" viewBox="0 0 48 52" fill="none"><g style="animation:cloud-drift 5s ease-in-out infinite"><path d="M6 20C6 14.48 10.48 10 16 10C19.5 10 22.62 11.74 24.56 14.4C25.6 13.52 26.96 13 28.44 13C32.08 13 35 15.92 35 19.56Z" fill="rgba(40,45,80,0.5)"/><rect x="4" y="18" width="40" height="14" rx="7" fill="url(#cloudGradStorm)"/></g><path d="M26 34L20 44H27L22 52" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:bolt-flash 2.5s ease infinite"/><g style="animation:rain-drip 0.7s ease-in-out infinite;animation-delay:0.3s"><line x1="38" y1="34" x2="36" y2="42" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/></g><defs><linearGradient id="cloudGradStorm" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(50,55,90,0.5)"/><stop offset="100%" stop-color="rgba(35,40,70,0.35)"/></linearGradient></defs></svg>`,
+  snow:`<svg width="46" height="48" viewBox="0 0 46 48" fill="none"><g style="animation:cloud-drift 8s ease-in-out infinite"><path d="M9 20C9 15.58 12.58 12 17 12C19.76 12 22.24 13.2 23.9 15.14C24.9 14.44 26.12 14 27.44 14C31.09 14 34 16.91 34 20.56Z" fill="rgba(200,220,255,0.15)"/><rect x="7" y="19" width="32" height="12" rx="6" fill="url(#cloudGradSnow)"/></g><g style="animation:snow-spin 6s linear infinite;transform-origin:15px 37px"><line x1="15" y1="33" x2="15" y2="41" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="35" x2="19" y2="39" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="39" x2="19" y2="35" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/></g><g style="animation:snow-spin 8s linear infinite reverse;transform-origin:23px 39px"><line x1="23" y1="35" x2="23" y2="43" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/><line x1="19" y1="37" x2="27" y2="41" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/><line x1="19" y1="41" x2="27" y2="37" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/></g><g style="animation:snow-spin 7s linear infinite;transform-origin:31px 37px"><line x1="31" y1="33" x2="31" y2="41" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/><line x1="27" y1="35" x2="35" y2="39" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/><line x1="27" y1="39" x2="35" y2="35" stroke="#bfdbfe" stroke-width="1.5" stroke-linecap="round"/></g><defs><linearGradient id="cloudGradSnow" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(200,220,255,0.3)"/><stop offset="100%" stop-color="rgba(180,205,245,0.18)"/></linearGradient></defs></svg>`,
+  heavySnow:`<svg width="46" height="48" viewBox="0 0 46 48" fill="none"><g style="animation:cloud-drift 6s ease-in-out infinite"><rect x="5" y="18" width="36" height="13" rx="6.5" fill="url(#cloudGradHeavySnow)"/></g><g style="animation:snow-spin 5s linear infinite;transform-origin:12px 36px"><line x1="12" y1="32" x2="12" y2="40" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="34" x2="16" y2="38" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="38" x2="16" y2="34" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/></g><g style="animation:snow-spin 7s linear infinite reverse;transform-origin:23px 38px"><line x1="23" y1="34" x2="23" y2="42" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/><line x1="19" y1="36" x2="27" y2="40" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/><line x1="19" y1="40" x2="27" y2="36" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/></g><g style="animation:snow-spin 6s linear infinite;transform-origin:34px 36px"><line x1="34" y1="32" x2="34" y2="40" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/><line x1="30" y1="34" x2="38" y2="38" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/><line x1="30" y1="38" x2="38" y2="34" stroke="#dbeafe" stroke-width="1.8" stroke-linecap="round"/></g><defs><linearGradient id="cloudGradHeavySnow" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(215,230,255,0.35)"/><stop offset="100%" stop-color="rgba(190,215,255,0.22)"/></linearGradient></defs></svg>`,
+  fog:`<svg width="48" height="38" viewBox="0 0 48 38" fill="none"><g style="animation:fog-drift 4s ease-in-out infinite"><rect x="4" y="10" width="40" height="5" rx="2.5" fill="rgba(180,200,230,0.18)" opacity="0.8"/></g><g style="animation:fog-drift 5s ease-in-out infinite;animation-delay:0.5s"><rect x="8" y="19" width="34" height="5" rx="2.5" fill="rgba(160,185,220,0.15)" opacity="0.9"/></g><g style="animation:fog-drift 4.5s ease-in-out infinite;animation-delay:1s"><rect x="2" y="28" width="44" height="5" rx="2.5" fill="rgba(140,170,210,0.13)"/></g></svg>`,
+  hail:`<svg width="46" height="48" viewBox="0 0 46 48" fill="none"><g style="animation:cloud-drift 6s ease-in-out infinite"><rect x="7" y="12" width="32" height="14" rx="7" fill="url(#cloudGradHail)"/></g><g style="animation:rain-drip 0.9s ease-in-out infinite"><circle cx="15" cy="38" r="2.5" fill="#bfdbfe" opacity="0.9"/></g><g style="animation:rain-drip 0.9s ease-in-out infinite;animation-delay:0.3s"><circle cx="23" cy="40" r="2.5" fill="#bfdbfe" opacity="0.85"/></g><g style="animation:rain-drip 0.9s ease-in-out infinite;animation-delay:0.6s"><circle cx="31" cy="38" r="2.5" fill="#bfdbfe" opacity="0.9"/></g><defs><linearGradient id="cloudGradHail" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(140,170,210,0.28)"/><stop offset="100%" stop-color="rgba(100,140,185,0.18)"/></linearGradient></defs></svg>`,
+};
+SVG.thermometer=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="6.5" y="2" width="3" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="12" r="2.5" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="10" x2="8" y2="8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+SVG.droplets=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3L11 8.5C11 10.4 9.66 12 8 12C6.34 12 5 10.4 5 8.5L8 3Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+SVG.gauge=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 10C3 7.24 5.24 5 8 5C10.76 5 13 7.24 13 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="8" y1="10" x2="8" y2="7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+SVG.sun16=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="1" x2="8" y2="3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="1" y1="8" x2="3" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="13" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+SVG.eye16=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="8" rx="6" ry="3.5" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/></svg>`;
+SVG.wind16=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h8.5C11.88 8 13 6.88 13 5.5S11.88 3 10.5 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 11h5.5C8.88 11 10 12.12 10 13.5S8.88 16 7.5 16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+SVG.cloud16=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 11C3 8.24 5.24 6 8 6C9.84 6 11.44 6.96 12.32 8.4C12.6 8.15 12.98 8 13.4 8C14.28 8 15 8.72 15 9.6C15 10.48 14.28 11 13.4 11H3Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>`;
+SVG.pinIcon=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="6" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 2C4.79 2 3 3.79 3 6C3 8.76 7 12 7 12C7 12 11 8.76 11 6C11 3.79 9.21 2 7 2Z" stroke="currentColor" stroke-width="1.2" fill="currentColor" fill-opacity="0.15"/></svg>`;
+SVG.moon16=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 10C12 11.5 10.2 12.5 8.2 12.5C5.35 12.5 3 10.15 3 7.3C3 5.28 4.1 3.5 5.7 2.5C3.1 3.2 1.2 5.6 1.2 8.3C1.2 11.72 4 14.5 7.4 14.5C10.1 14.5 12.4 12.6 13 10Z" stroke="currentColor" stroke-width="1.2" fill="currentColor" fill-opacity="0.12"/></svg>`;
+SVG.leaf16=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 13C4 13 5 8 8 6C11 4 14 3 14 3C14 3 13 7 10 9.5C7.5 11.5 4 13 4 13Z" stroke="currentColor" stroke-width="1.2" fill="currentColor" fill-opacity="0.1"/><line x1="4" y1="13" x2="8" y2="7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+
+const WMO_ICON={0:SVG.sun,1:SVG.sun,2:SVG.partlyCloudyDay,3:SVG.overcast,45:SVG.fog,48:SVG.fog,51:SVG.drizzle,53:SVG.drizzle,55:SVG.drizzle,61:SVG.rain,63:SVG.rain,65:SVG.heavyRain,71:SVG.snow,73:SVG.snow,75:SVG.heavySnow,77:SVG.snow,80:SVG.drizzle,81:SVG.rain,82:SVG.heavyRain,85:SVG.snow,86:SVG.heavySnow,95:SVG.storm,96:SVG.storm,99:SVG.storm};
+const WMO_ICON_NIGHT={0:SVG.moon,1:SVG.moon,2:SVG.partlyCloudyNight,3:SVG.overcast,45:SVG.fog,48:SVG.fog,51:SVG.drizzle,53:SVG.drizzle,55:SVG.drizzle,61:SVG.rain,63:SVG.rain,65:SVG.heavyRain,71:SVG.snow,73:SVG.snow,75:SVG.heavySnow,77:SVG.snow,80:SVG.drizzle,81:SVG.rain,82:SVG.heavyRain,85:SVG.snow,86:SVG.heavySnow,95:SVG.storm,96:SVG.storm,99:SVG.storm};
+const WMO={0:'Cer senin',1:'Predominant senin',2:'Parțial noros',3:'Cer acoperit',45:'Ceață',48:'Ceață cu chiciură',51:'Burniță ușoară',53:'Burniță',55:'Burniță abundentă',61:'Ploaie ușoară',63:'Ploaie',65:'Ploaie abundentă',71:'Ninsoare ușoară',73:'Ninsoare',75:'Ninsoare abundentă',77:'Granule de zăpadă',80:'Averse ușoare',81:'Averse',82:'Averse puternice',85:'Averse de ninsoare',86:'Averse puternice de ninsoare',95:'Furtună',96:'Furtună cu grindină',99:'Furtună puternică cu grindină'};
+function icon(code){return WMO_ICON[code]||SVG.thermometer;}
+function iconForTime(code,isDay){return isDay?(WMO_ICON[code]||SVG.thermometer):(WMO_ICON_NIGHT[code]||WMO_ICON[code]||SVG.thermometer);}
+function desc(code){return WMO[code]||'—';}
+
+// ─── Search ───
+const searchInput=document.getElementById('searchInput');
+const searchClear=document.getElementById('searchClear');
+const searchSugg=document.getElementById('searchSuggestions');
+const geocodeCache=new Map();
+
+searchInput.addEventListener('input',()=>{
+  const q=searchInput.value.trim();
+  searchClear.style.display=q?'flex':'none';
+  clearTimeout(searchTimeout);
+  if(q.length<2){closeSuggestions();return;}
+  searchSugg.innerHTML=`<div class="search-loading"><div class="mini-spin"></div> Se caută…</div>`;
+  searchSugg.classList.add('open');
+  searchTimeout=setTimeout(()=>geocode(q),300);
+});
+
+searchInput.addEventListener('keydown',e=>{
+  const items=searchSugg.querySelectorAll('.suggestion-item');
+  if(e.key==='ArrowDown'){e.preventDefault();focusedSuggestion=Math.min(focusedSuggestion+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedSuggestion));}
+  else if(e.key==='ArrowUp'){e.preventDefault();focusedSuggestion=Math.max(focusedSuggestion-1,0);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedSuggestion));}
+  else if(e.key==='Enter'){if(focusedSuggestion>=0&&items[focusedSuggestion])items[focusedSuggestion].click();}
+  else if(e.key==='Escape'){closeSuggestions();searchInput.blur();}
+});
+
+searchClear.addEventListener('click',()=>{searchInput.value='';searchClear.style.display='none';closeSuggestions();searchInput.focus();});
+document.addEventListener('click',e=>{if(!document.getElementById('searchWrap').contains(e.target))closeSuggestions();});
+
+function closeSuggestions(){searchSugg.classList.remove('open');searchSugg.innerHTML='';focusedSuggestion=-1;}
+
+async function geocode(q){
+  if(geocodeCache.has(q)){renderSuggestions(geocodeCache.get(q));return;}
+  try{
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=ro&format=json`);
+    const data=await r.json();
+    const results=data.results||[];
+    geocodeCache.set(q,results);
+    renderSuggestions(results);
+  }catch(e){searchSugg.innerHTML=`<div class="search-no-results">Eroare la căutare.</div>`;}
+}
+
+function renderSuggestions(results){
+  if(!results.length){searchSugg.innerHTML=`<div class="search-no-results">Nicio locație găsită.</div>`;searchSugg.classList.add('open');return;}
+  focusedSuggestion=-1;
+  searchSugg.innerHTML=results.map(r=>{
+    const region=[r.admin1,r.country].filter(Boolean).join(', ');
+    const pop=r.population?`${r.population>=1000000?(r.population/1000000).toFixed(1)+'M':Math.round(r.population/1000)+'k'}`:'';
+    return `<div class="suggestion-item" data-lat="${r.latitude}" data-lon="${r.longitude}" data-city="${esc(r.name)}" data-country="${esc(r.country||'')}" data-tz="${r.timezone||'UTC'}">
+      <div class="suggestion-pin-wrap"><span class="suggestion-pin">${SVG.pinIcon}</span></div>
+      <div class="suggestion-text"><div class="suggestion-name">${esc(r.name)}</div>${region?`<div class="suggestion-region">${esc(region)}</div>`:''}</div>
+      ${pop?`<span class="suggestion-meta">${pop}</span>`:''}
+    </div>`;
+  }).join('');
+  searchSugg.classList.add('open');
+  searchSugg.querySelectorAll('.suggestion-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      setState({lat:parseFloat(el.dataset.lat),lon:parseFloat(el.dataset.lon),city:el.dataset.city,country:el.dataset.country,tz:el.dataset.tz});
+      searchInput.value=state.city+(state.country?`, ${state.country}`:'');
+      searchClear.style.display='flex';
+      closeSuggestions();
+      loadWeather();
+    });
+  });
+}
+
+async function useGPSLocation(){
+  const btn=document.getElementById('gpsBtn');
+  if(!navigator.geolocation){showToast('GPS indisponibil');return;}
+  btn.classList.add('loading');
+  btn.querySelector('.gps-label').textContent='Se caută…';
+  navigator.geolocation.getCurrentPosition(
+    async pos=>{
+      try{
+        const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=ro`);
+        const geo=await r.json();
+        setState({lat:pos.coords.latitude,lon:pos.coords.longitude,city:geo.city||geo.locality||'Locația mea',country:geo.countryName||'',tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'});
+      }catch{setState({lat:pos.coords.latitude,lon:pos.coords.longitude,city:'Locația mea',country:'',tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'});}
+      searchInput.value=state.city;searchClear.style.display='flex';
+      btn.classList.remove('loading');btn.querySelector('.gps-label').textContent='Locația mea';
+      loadWeather();
+    },
+    err=>{btn.classList.remove('loading');btn.querySelector('.gps-label').textContent=err.code===1?'Acces refuzat':'Eroare GPS';setTimeout(()=>btn.querySelector('.gps-label').textContent='Locația mea',3000);}
+  ,{timeout:10000,enableHighAccuracy:true});
+}
+
+// ─── Weather API ───
+async function fetchWeather(){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${state.lat}&longitude=${state.lon}`
+    +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,is_day,windspeed_10m,winddirection_10m,windgusts_10m,pressure_msl,uv_index,cloud_cover,dew_point_2m`
+    +`&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m,uv_index,visibility,pressure_msl,cloud_cover,precipitation_probability`
+    +`&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,uv_index_max`
+    +`&timezone=${encodeURIComponent(state.tz)}&forecast_days=10`;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const data=await r.json();
+  data._fetchedAt=new Date().toISOString();
+  return data;
+}
+
+async function fetchAQI(){
+  try{
+    const url=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${state.lat}&longitude=${state.lon}`
+      +`&current=european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide`
+      +`&timezone=${encodeURIComponent(state.tz)}`;
+    const r=await fetch(url);
+    if(!r.ok)return null;
+    return await r.json();
+  }catch{return null;}
+}
+
+function loadWeather(){
+  document.getElementById('app').innerHTML=`<div class="loading"><div class="spinner"></div><div class="loading-text">Se încarcă datele meteo…</div></div>`;
+  Promise.all([fetchWeather(),fetchAQI()])
+    .then(([data,aqi])=>render(data,aqi))
+    .catch(err=>{document.getElementById('app').innerHTML=`<div class="error-msg">Nu s-au putut încărca datele meteo.<br><small>${err.message}</small></div>`;});
+}
+
+// ─── Helpers ───
+function formatTime(iso){return iso?iso.slice(11,16):'—';}
+function daylight(rise,set){if(!rise||!set)return'';const d=Math.round((new Date(set)-new Date(rise))/60000);return`${Math.floor(d/60)}h ${d%60}m lumină`;}
+function windDirLabel(deg){if(deg==null)return'';return['N','NE','E','SE','S','SV','V','NV'][Math.round(deg/45)%8];}
+function shortDay(iso){return new Date(iso+'T12:00:00Z').toLocaleDateString('ro-RO',{weekday:'short'});}
+function shortDate(iso){return new Date(iso+'T12:00:00Z').toLocaleDateString('ro-RO',{day:'numeric',month:'short'});}
+
+function getHourIsDay(data,t){
+  const di=data.daily.time.indexOf(t.slice(0,10));
+  if(di<0)return true;
+  return t>=data.daily.sunrise[di]&&t<data.daily.sunset[di];
+}
+
+function getHourlyFromNow(data,count=24){
+  const{currentHourStr,dateStr}=nowLocalISO();
+  let ni=data.hourly.time.findIndex(t=>t.startsWith(currentHourStr));
+  if(ni<0)ni=0;
+  const hours=[];let prevDate=null;
+  for(let i=0;i<count;i++){
+    const idx=ni+i;if(idx>=data.hourly.time.length)break;
+    const t=data.hourly.time[idx];
+    const date=t.slice(0,10);
+    const isDay=getHourIsDay(data,t);
+    hours.push({t,hour:t.slice(11,16),temp:Math.round(data.hourly.temperature_2m[idx]),feel:Math.round(data.hourly.apparent_temperature?.[idx]??data.hourly.temperature_2m[idx]),code:data.hourly.weathercode[idx],prec:+(data.hourly.precipitation?.[idx]??0).toFixed(1),wind:Math.round(data.hourly.windspeed_10m?.[idx]??0),uv:data.hourly.uv_index?.[idx]??0,precProb:data.hourly.precipitation_probability?.[idx]??0,isNow:i===0,isDay,newDay:prevDate!==null&&date!==prevDate});
+    prevDate=date;
+  }
+  return hours;
+}
+
+function getHourlyForDay(data,di){
+  const target=data.daily.time[di];
+  const bi=data.hourly.time.findIndex(t=>t.startsWith(target));
+  if(bi<0)return[];
+  const hours=[];
+  for(let i=0;i<24;i++){
+    const idx=bi+i;if(idx>=data.hourly.time.length)break;
+    const t=data.hourly.time[idx];if(!t.startsWith(target))break;
+    const isDay=getHourIsDay(data,t);
+    hours.push({t,hour:t.slice(11,16),temp:Math.round(data.hourly.temperature_2m[idx]),feel:Math.round(data.hourly.apparent_temperature?.[idx]??data.hourly.temperature_2m[idx]),code:data.hourly.weathercode[idx],prec:+(data.hourly.precipitation?.[idx]??0).toFixed(1),wind:Math.round(data.hourly.windspeed_10m?.[idx]??0),uv:data.hourly.uv_index?.[idx]??0,precProb:data.hourly.precipitation_probability?.[idx]??0,isDay});
+  }
+  return hours;
+}
+
+function getRemainingPrecip(data){
+  const{dateStr,currentHourStr}=nowLocalISO();
+  return data.daily.time.map((day,di)=>{
+    const si=data.hourly.time.findIndex(t=>t.startsWith(day));
+    if(si<0)return 0;
+    let sum=0;
+    for(let i=si;i<si+24&&i<data.hourly.time.length;i++){
+      if(!data.hourly.time[i].startsWith(day))break;
+      if(day===dateStr&&data.hourly.time[i]<currentHourStr)continue;
+      sum+=data.hourly.precipitation?.[i]??0;
+    }
+    return+sum.toFixed(1);
+  });
+}
+
+function findBestWindow(hours){
+  if(!hours||hours.length<3)return null;
+  let best=null,bestScore=1e9;
+  for(let i=0;i<=hours.length-3;i++){
+    const s=hours.slice(i,i+3);
+    const prec=s.reduce((a,h)=>a+h.prec,0);
+    const wind=s.reduce((a,h)=>a+h.wind,0)/3;
+    const temp=s.reduce((a,h)=>a+h.temp,0)/3;
+    const score=prec*10+wind*0.5-(temp>=18&&temp<=26?5:0);
+    if(score<bestScore){bestScore=score;best={start:s[0].hour,end:s[2].hour,temp:Math.round(temp),prec:prec.toFixed(1)};}
+  }
+  return best;
+}
+
+// ─── Moon Phase ───
+function getMoonPhase(date){
+  const d=new Date(date);
+  const year=d.getFullYear(),month=d.getMonth()+1,day=d.getDate();
+  let jd=367*year-Math.floor(7*(year+Math.floor((month+9)/12))/4)+Math.floor(275*month/9)+day+1721013.5;
+  const cycle=(jd-2451550.1)/29.530588853;
+  const phase=cycle-Math.floor(cycle);
+  const pct=Math.round(phase*100);
+  let name,emoji;
+  if(pct<4)name='Lună nouă',emoji='🌑';
+  else if(pct<25)name='Lună în creștere',emoji='🌒';
+  else if(pct<30)name='Primul pătrar',emoji='🌓';
+  else if(pct<47)name='Gibboasă în creștere',emoji='🌔';
+  else if(pct<54)name='Lună plină',emoji='🌕';
+  else if(pct<71)name='Gibboasă în descreștere',emoji='🌖';
+  else if(pct<75)name='Ultimul pătrar',emoji='🌗';
+  else if(pct<96)name='Lună în scădere',emoji='🌘';
+  else name='Lună nouă',emoji='🌑';
+  return{phase,pct,name,emoji};
+}
+
+// ─── AQI ───
+function getAQIInfo(aqi){
+  if(aqi<=20)return{level:'Foarte bun',color:'#4ade80',bg:'rgba(74,222,128,0.1)',border:'rgba(74,222,128,0.3)',desc:'Calitatea aerului este excelentă. Activitate în aer liber recomandată.'};
+  if(aqi<=40)return{level:'Bun',color:'#86efac',bg:'rgba(134,239,172,0.08)',border:'rgba(134,239,172,0.25)',desc:'Calitatea aerului este satisfăcătoare.'};
+  if(aqi<=60)return{level:'Moderat',color:'#fbbf24',bg:'rgba(251,191,36,0.08)',border:'rgba(251,191,36,0.25)',desc:'Sensibilii ar trebui să limiteze activitatea în exterior.'};
+  if(aqi<=80)return{level:'Nesatisfăcător',color:'#fb923c',bg:'rgba(251,146,60,0.08)',border:'rgba(251,146,60,0.25)',desc:'Persoanele cu boli respiratorii sunt afectate.'};
+  if(aqi<=100)return{level:'Rău',color:'#f87171',bg:'rgba(248,113,113,0.08)',border:'rgba(248,113,113,0.25)',desc:'Pericol pentru sănătate. Evitați activitățile în exterior.'};
+  return{level:'Periculos',color:'#dc2626',bg:'rgba(220,38,38,0.1)',border:'rgba(220,38,38,0.35)',desc:'Alertă sanitară! Evitați orice expunere în exterior.'};
+}
+
+// ─── Alert Logic ───
+function buildAlerts(hours,cw,daily,aqiData){
+  const alerts=[];
+  const ws=cw.windspeed_10m||0,wg=cw.windgusts_10m||0,uv=cw.uv_index||0;
+  const temp=cw.temperature_2m,code=cw.weathercode,hum=cw.relative_humidity_2m||0;
+  // Wind alerts
+  if(ws>70||wg>90){alerts.push({type:'danger',icon:'🌀',title:'Vânt extrem de puternic',desc:`Viteza: ${Math.round(ws)} km/h, rafale: ${Math.round(wg)} km/h. Riscuri majore în exterior.`});}
+  else if(ws>45||wg>65){alerts.push({type:'warn',icon:'💨',title:'Vânt puternic',desc:`Viteza: ${Math.round(ws)} km/h, rafale: ${Math.round(wg)} km/h. Atenție la obiecte neancorate.`});}
+  else if(ws>30){alerts.push({type:'info',icon:'🌬️',title:'Vânt moderat spre tare',desc:`Rafale până la ${Math.round(wg)} km/h.`});}
+  // Temperature alerts
+  if(temp<=0){alerts.push({type:'info',icon:'🧊',title:'Temperaturi sub zero',desc:`${ft(temp)}${ftLabel()} — posibil gheață pe căi rutiere. Conduceți cu prudență.`});}
+  if(temp>=(state.unit==='F'?100:38)){alerts.push({type:'danger',icon:'🔥',title:'Căldură extremă',desc:`${ft(temp)}${ftLabel()} — risc de insolație. Hidratare și evitarea expunerii la prânz.`});}
+  else if(temp>=(state.unit==='F'?95:35)){alerts.push({type:'warn',icon:'☀️',title:'Temperaturi foarte ridicate',desc:`${ft(temp)}${ftLabel()} — consumați lichide și stați la umbră.`});}
+  // Frost risk
+  const minTonight=daily?.temperature_2m_min?.[0];
+  if(minTonight!==undefined&&minTonight<=2&&minTonight>-2){alerts.push({type:'warn',icon:'❄️',title:'Risc de brumă/îngheț',desc:`Temperatura minimă nocturnă: ${ft(minTonight)}${ftLabel()}. Protejați plantele sensibile.`});}
+  // UV alerts
+  if(uv>=11){alerts.push({type:'danger',icon:'☀️',title:'UV extrem',desc:`Index UV: ${uv.toFixed(1)} — protecție maximă, rămâneți la interior la orele de vârf.`});}
+  else if(uv>=8){alerts.push({type:'warn',icon:'🕶️',title:'UV foarte ridicat',desc:`Index UV: ${uv.toFixed(1)} — cremă SPF 50+, ochelari și umbrelă obligatorii.`});}
+  else if(uv>=6){alerts.push({type:'info',icon:'🧴',title:'UV ridicat',desc:`Index UV: ${uv.toFixed(1)} — aplicați SPF 30+ și limitați expunerea la 11–16.`});}
+  // Storm/rain
+  if([95,96,99].includes(code)){alerts.push({type:'danger',icon:'⛈️',title:'Furtună electrică',desc:'Evitați spațiile deschise, copacii și obiectele metalice. Adăpostiți-vă imediat.'});}
+  else if([65,82].includes(code)){alerts.push({type:'warn',icon:'🌧️',title:'Precipitații abundente',desc:'Ploaie puternică. Posibile inundații în zone joase și curgeri rapide.'});}
+  // Humidity discomfort
+  if(hum>=85&&temp>=25){alerts.push({type:'warn',icon:'💧',title:'Umezeală disconfort termic',desc:`${hum}% umiditate la ${ft(temp)}${ftLabel()}. Indicele de disconfort termic este ridicat.`});}
+  // Fog visibility
+  if([45,48].includes(code)){alerts.push({type:'info',icon:'🌫️',title:'Ceață — vizibilitate redusă',desc:'Conduceți cu farurile aprinse și mențineți distanța față de vehiculul din față.'});}
+  // Snow
+  if([73,75,77,86].includes(code)){alerts.push({type:'warn',icon:'🌨️',title:'Ninsoare',desc:'Posibile perturbări în trafic. Verificați starea drumurilor înainte de călătorie.'});}
+  // AQI
+  if(aqiData?.current?.european_aqi>=80){
+    const aq=aqiData.current.european_aqi;
+    const info=getAQIInfo(aq);
+    alerts.push({type:aq>=100?'danger':'warn',icon:'😷',title:`Calitate aer ${info.level}`,desc:`Index AQI european: ${Math.round(aq)}. ${info.desc}`});
+  }
+  // Rain coming
+  const precNext3=hours.slice(0,6).reduce((a,h)=>a+h.prec,0);
+  if(precNext3>5&&!alerts.find(a=>a.title.includes('abundente'))){alerts.push({type:'info',icon:'🌂',title:'Precipitații în următoarele ore',desc:`${precNext3.toFixed(1)}mm prognozate în următoarele 6 ore. Ia umbrela cu tine.`});}
+  return alerts;
+}
+
+// ─── Background ───
+const PERF=(()=>{
+  const w=window.innerWidth||1024;
+  const rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const lc=(navigator.hardwareConcurrency||8)<=4;
+  let scale=1;
+  if(w<=400)scale=0.35;else if(w<=640)scale=0.5;else if(w<=900)scale=0.75;
+  if(lc)scale*=0.8;
+  return{scale,rm,fancy:!rm&&scale>=0.75};
+})();
+function pc(n){if(PERF.rm)return Math.max(1,Math.round(n*0.15));if(PERF.scale>=1)return n;return Math.max(Math.min(n,3),Math.round(n*PERF.scale));}
+
+function buildRain(count,night){let h='<div class="rain-container">';for(let i=0;i<count;i++){const l=Math.random()*110-5,dur=0.4+Math.random()*0.7,del=Math.random()*3,ht=50+Math.random()*100;h+=`<div class="rain-drop${night?' night-drop':''}" style="left:${l}%;height:${ht}px;animation-duration:${dur}s;animation-delay:-${del}s;opacity:${0.4+Math.random()*0.5}"></div>`;}return h+'<div class="rain-splash"></div></div>';}
+function buildSnow(count,night){let h='<div class="snow-container">';for(let i=0;i<count;i++){const l=Math.random()*105,s=2+Math.random()*5,dur=4+Math.random()*8,del=Math.random()*8,sx=(Math.random()-0.5)*80;h+=`<div class="snow-flake${night?' night-flake':''}" style="left:${l}%;width:${s}px;height:${s}px;animation-duration:${dur}s;animation-delay:-${del}s;--sx:${sx}px"></div>`;}if(PERF.fancy&&night)h+='<div class="winter-aurora"></div>';return h+'</div>';}
+function buildStars(count){let h='<div class="stars-container">';for(let i=0;i<count;i++){const x=Math.random()*100,y=Math.random()*65,s=0.8+Math.random()*2,dur=2+Math.random()*4,del=Math.random()*4;h+=`<div class="star" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;animation-duration:${dur}s;animation-delay:-${del}s"></div>`;}return h+'</div>';}
+function buildClouds(arr){return arr.map(c=>`<div class="cloud-shape" style="width:${c.w}px;height:${c.h}px;top:${c.top};${c.left?'left:'+c.left:'right:'+c.right};animation-duration:${c.dur}s"></div>`).join('');}
+function buildFog(night){let h='';for(let i=0;i<pc(5);i++){const top=10+i*15,dur=5+i*1.5,del=i*0.8;h+=`<div class="fog-layer" style="top:${top}%;height:${12+i*4}px;animation-duration:${dur}s;animation-delay:-${del}s"></div>`;}if(night)h=buildStars(pc(15))+h;return h;}
+function buildHail(count){let h='<div class="hail-container">';for(let i=0;i<count;i++){const l=Math.random()*105,s=3+Math.random()*4,dur=0.5+Math.random()*0.6,del=Math.random()*2;h+=`<div class="hail-drop" style="left:${l}%;width:${s}px;height:${s}px;animation-duration:${dur}s;animation-delay:-${del}s"></div>`;}return h+'</div>';}
+function buildStorm(night){let h=`<div class="storm-clouds">`;for(let i=0;i<pc(4);i++){const w=200+i*80;h+=`<div class="storm-cloud" style="width:${w}px;height:${w*0.4}px;top:${-w*0.2+i*20}px;left:${i*22-10}%;animation-duration:${18+i*5}s"></div>`;}h+='</div><div class="lightning-flash"></div>';let r='';for(let i=0;i<pc(night?100:80);i++){const l=Math.random()*115-8,dur=0.3+Math.random()*0.5,del=Math.random()*2,ht=80+Math.random()*120;r+=`<div class="rain-drop" style="left:${l}%;height:${ht}px;animation-duration:${dur}s;animation-delay:-${del}s;opacity:${0.3+Math.random()*0.5};width:1px"></div>`;}return h+r;}
+
+function getWeatherBgClass(code){
+  if([95,96,99].includes(code))return'bg-storm';
+  if([71,73,75,77,85,86].includes(code))return'bg-snow';
+  if([51,53,55,61,63,65,80,81,82].includes(code))return'bg-rain';
+  if([45,48].includes(code))return'bg-fog';
+  if(code===3)return'bg-overcast';
+  if(code===2)return'bg-partly-cloudy';
+  if(code===0||code===1)return'bg-sunny';
+  return'bg-overcast';
+}
+
+function updateWeatherBg(code,isDay){
+  const bg=document.getElementById('weather-bg');if(!bg)return;
+  const cls=getWeatherBgClass(code);
+  const nc=!isDay?' night':'';
+  if(bg._cur===cls+nc)return;
+  bg._cur=cls+nc;
+  bg.className=cls+nc;
+  let inner='';
+  if(cls==='bg-sunny'){inner=isDay?`<div class="sun-bg-orb"></div><div class="sun-glow-ring"></div><div class="sun-bg-rays"></div>`:buildStars(pc(100))+'<div class="moon-glow"></div>';}
+  else if(cls==='bg-partly-cloudy'){inner=isDay?buildClouds([{w:200,h:80,top:'5%',left:'15%',dur:18},{w:150,h:60,top:'12%',right:'20%',dur:22},{w:120,h:50,top:'25%',left:'60%',dur:15}])+'<div class="sun-glow-ring" style="opacity:0.4"></div>':buildStars(pc(60))+'<div class="moon-glow"></div>';}
+  else if(cls==='bg-overcast'){inner=isDay?buildClouds([{w:300,h:100,top:'0%',left:'-10%',dur:25},{w:250,h:90,top:'8%',left:'35%',dur:20},{w:200,h:80,top:'3%',left:'70%',dur:30}]):(buildStars(pc(20))+buildClouds([{w:350,h:120,top:'0%',left:'-15%',dur:28},{w:280,h:100,top:'6%',left:'40%',dur:22}]));}
+  else if(cls==='bg-fog'){inner=buildFog(!isDay);}
+  else if(cls==='bg-rain'){inner=buildRain(pc(120),!isDay)+(!isDay?'<div class="pavement-reflection"></div>':'');}
+  else if(cls==='bg-snow'){inner=buildSnow(pc(80),!isDay);}
+  else if(cls==='bg-storm'){inner=buildStorm(!isDay);}
+  else if(cls==='bg-hail'){inner=buildHail(pc(60));}
+  bg.innerHTML=inner;
+}
+
+// ─── Sun Arc ───
+function drawSunArc(riseIso,setIso){
+  const W=220,H=90;
+  const now=new Date(),rise=new Date(riseIso),set=new Date(setIso);
+  const prog=Math.max(0,Math.min(1,(now-rise)/(set-rise)));
+  const sx=prog*W,sy=H-Math.sin(Math.PI*prog)*H;
+  return`<svg class="arc-svg" width="${W}" height="${H+8}" viewBox="0 0 ${W} ${H+8}">
+    <defs>
+      <linearGradient id="arcG" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.3"/>
+        <stop offset="${Math.round(prog*100)}%" stop-color="#fbbf24" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.1"/>
+      </linearGradient>
+      <filter id="sg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <path d="M 0 ${H} Q ${W/2} 0 ${W} ${H}" fill="none" stroke="rgba(251,191,36,0.1)" stroke-width="2" stroke-dasharray="4 6" class="arc-track"/>
+    <path d="M 0 ${H} Q ${W/2} 0 ${W} ${H}" fill="none" stroke="url(#arcG)" stroke-width="2.5" stroke-linecap="round" class="arc-path"/>
+    ${prog>0&&prog<1?`<circle cx="${sx}" cy="${sy}" r="8" fill="#fbbf24" filter="url(#sg)" class="sun-icon-svg" style="animation:ray-pulse 3s ease infinite;transform-origin:${sx}px ${sy}px"/>`:``}
+    <circle cx="0" cy="${H}" r="4" fill="#f59e0b" opacity="0.5"/>
+    <circle cx="${W}" cy="${H}" r="4" fill="#f59e0b" opacity="0.5"/>
+  </svg>`;
+}
+
+// ─── Charts ───
+function destroyChart(ref){if(ref)try{ref.destroy();}catch(e){}}
+const chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(3,6,16,0.95)',titleColor:'#eef0ff',bodyColor:'#94a3b8',borderColor:'rgba(255,255,255,0.08)',borderWidth:1}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(238,240,255,0.3)',font:{family:'JetBrains Mono',size:10}}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(251,191,36,0.6)',font:{family:'Inter',size:11}}}}};
+
+function drawCharts(data,hours,cw){
+  const unit=state.unit;
+  // Hourly temp+precip
+  destroyChart(hourlyChart);
+  const hctx=document.getElementById('hourlyChart');
+  if(hctx)hourlyChart=new Chart(hctx,{type:'line',data:{labels:hours.map(h=>h.hour),datasets:[{label:'Temp',data:hours.map(h=>ft(h.temp)),borderColor:'rgba(251,191,36,0.9)',pointBackgroundColor:'rgba(251,191,36,0.9)',pointRadius:2,borderWidth:2,tension:0.4,fill:false,yAxisID:'y'},{label:'Precip',data:hours.map(h=>h.prec),type:'bar',backgroundColor:'rgba(96,165,250,0.35)',borderColor:'rgba(96,165,250,0.5)',borderWidth:1,borderRadius:3,yAxisID:'y2'}]},options:{...chartOpts,scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(238,240,255,0.3)',font:{family:'JetBrains Mono',size:10},maxTicksLimit:12}},y:{position:'left',grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(251,191,36,0.7)',font:{family:'Inter',size:11},callback:v=>v+(unit==='F'?'°F':'°')}},y2:{position:'right',grid:{display:false},ticks:{color:'rgba(96,165,250,0.6)',font:{family:'Inter',size:11},callback:v=>v+'mm'},beginAtZero:true,min:0}}}});
+  // Precip bar
+  destroyChart(precipChart);
+  const pctx=document.getElementById('precipChart');
+  const sums=getRemainingPrecip(data);
+  if(pctx)precipChart=new Chart(pctx,{type:'bar',data:{labels:data.daily.time.map(t=>shortDate(t)),datasets:[{label:'Precipitații(mm)',data:sums,backgroundColor:sums.map(v=>v>=5?'rgba(147,197,253,0.8)':v>=1?'rgba(147,197,253,0.5)':'rgba(147,197,253,0.28)'),borderRadius:5,borderSkipped:false}]},options:{...chartOpts,scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(238,240,255,0.3)',font:{family:'JetBrains Mono',size:10}}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(147,197,253,0.6)',font:{family:'Inter',size:11},callback:v=>v+'mm'},beginAtZero:true}}}});
+  // Temp range
+  destroyChart(tempChart);
+  const tctx=document.getElementById('tempChart');
+  if(tctx)tempChart=new Chart(tctx,{type:'line',data:{labels:data.daily.time.map(t=>shortDate(t)),datasets:[{label:'Max',data:data.daily.temperature_2m_max.map(v=>ft(v)),borderColor:'rgba(251,191,36,0.8)',backgroundColor:'rgba(251,191,36,0.06)',pointBackgroundColor:'rgba(251,191,36,0.8)',pointRadius:3,borderWidth:2,tension:0.4,fill:true},{label:'Min',data:data.daily.temperature_2m_min.map(v=>ft(v)),borderColor:'rgba(96,165,250,0.7)',backgroundColor:'rgba(96,165,250,0.04)',pointBackgroundColor:'rgba(96,165,250,0.7)',pointRadius:3,borderWidth:2,tension:0.4,fill:true}]},options:{...chartOpts,scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(238,240,255,0.3)',font:{family:'JetBrains Mono',size:10}}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(251,191,36,0.6)',font:{family:'Inter',size:11},callback:v=>v+(unit==='F'?'°F':'°')}}}}});
+  // Wind
+  destroyChart(windChart);
+  const wctx=document.getElementById('windChart');
+  if(wctx)windChart=new Chart(wctx,{type:'line',data:{labels:hours.map(h=>h.hour),datasets:[{label:'Vânt',data:hours.map(h=>h.wind),borderColor:'rgba(45,212,191,0.8)',backgroundColor:'rgba(45,212,191,0.06)',pointRadius:0,borderWidth:2,tension:0.4,fill:true},{label:'Actual',data:hours.map(()=>Math.round(cw.windspeed_10m||0)),borderColor:'rgba(251,191,36,0.5)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:0,fill:false}]},options:{...chartOpts,scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(238,240,255,0.3)',font:{family:'JetBrains Mono',size:10},maxTicksLimit:12}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'rgba(45,212,191,0.6)',font:{family:'Inter',size:11},callback:v=>v+' km/h'},beginAtZero:true}}}});
+}
+
+// ─── Favorites ───
+const FAV_KEY='meteoro_favs_v3';
+function getFavs(){try{return JSON.parse(localStorage.getItem(FAV_KEY)||'[]');}catch{return[];}}
+function saveFavs(f){localStorage.setItem(FAV_KEY,JSON.stringify(f));}
+function isFav(){return getFavs().some(x=>Math.abs(x.lat-state.lat)<0.05&&Math.abs(x.lon-state.lon)<0.05);}
+function toggleFav(){
+  const favs=getFavs();
+  const idx=favs.findIndex(x=>Math.abs(x.lat-state.lat)<0.05&&Math.abs(x.lon-state.lon)<0.05);
+  if(idx>=0)favs.splice(idx,1);else favs.unshift({city:state.city,country:state.country,lat:state.lat,lon:state.lon,tz:state.tz});
+  saveFavs(favs.slice(0,8));
+  renderFavs();
+  const btn=document.querySelector('.fav-star');
+  if(btn){const s=isFav();btn.textContent=s?'★':'☆';btn.classList.toggle('saved',s);}
+  showToast(idx>=0?'Eliminat din favorite':'✓ Adăugat la favorite');
+}
+function renderFavs(){
+  const row=document.getElementById('favoritesRow');if(!row)return;
+  const favs=getFavs();
+  if(!favs.length){row.innerHTML='<span style="font-size:11px;color:var(--text3)">Apasă ★ pentru a salva locații</span>';return;}
+  row.innerHTML=favs.map(f=>{
+    const active=Math.abs(f.lat-state.lat)<0.05&&Math.abs(f.lon-state.lon)<0.05;
+    return`<button class="fav-chip${active?' active':''}" onclick="goFav(${f.lat},${f.lon},'${f.city.replace(/'/g,"\\'")}','${(f.country||'').replace(/'/g,"\\'")}','${f.tz}')">${esc(f.city)}<span class="rm" onclick="event.stopPropagation();removeFav(${f.lat},${f.lon})">×</span></button>`;
+  }).join('');
+}
+function goFav(lat,lon,city,country,tz){setState({lat,lon,city,country,tz});searchInput.value=city+(country?`, ${country}`:'');searchClear.style.display='flex';loadWeather();}
+function removeFav(lat,lon){saveFavs(getFavs().filter(x=>Math.abs(x.lat-lat)>=0.05||Math.abs(x.lon-lon)>=0.05));renderFavs();}
+
+// ─── Clock ───
+function startClock(){
+  clearInterval(clockInterval);
+  function update(){
+    try{
+      const now=new Date();
+      const t=now.toLocaleTimeString('ro-RO',{timeZone:state.tz,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const el=document.getElementById('liveClock');if(el)el.textContent=t;
+      const el2=document.getElementById('liveClock2');if(el2)el2.textContent=t;
+    }catch(e){}
+  }
+  update();
+  clockInterval=setInterval(update,1000);
+}
+
+// ─── Day/Hour Selection ───
+function selectDay(i){
+  setState({selectedDay:i,selectedHour:null});
+  if(!state.data)return;
+  document.querySelectorAll('.day-card').forEach((el,idx)=>el.classList.toggle('active',idx===i));
+  const d=state.data.daily;
+  const rEl=document.querySelector('.sun-rise-time');if(rEl)rEl.textContent=formatTime(d.sunrise[i]);
+  const sEl=document.querySelector('.sun-set-time');if(sEl)sEl.textContent=formatTime(d.sunset[i]);
+  const durEl=document.querySelector('.sun-duration');if(durEl)durEl.textContent=daylight(d.sunrise[i],d.sunset[i]);
+  const arcEl=document.querySelector('.sun-arc-wrap');if(arcEl)arcEl.innerHTML=drawSunArc(d.sunrise[i],d.sunset[i]);
+  const hours=i===0?getHourlyFromNow(state.data):getHourlyForDay(state.data,i);
+  const hs=document.querySelector('.hourly-scroll');if(hs)hs.innerHTML=buildHourlyRow(hours);
+  const ht=document.querySelector('.hourly-chart-title');if(ht)ht.textContent=`Orar — ${i===0?'Azi':shortDate(state.data.daily.time[i])}`;
+  drawCharts(state.data,hours,state.data.current);
+}
+
+function selectHour(t){
+  state.selectedHour=t;
+  const hours=state.selectedDay===0?getHourlyFromNow(state.data):getHourlyForDay(state.data,state.selectedDay);
+  const hs=document.querySelector('.hourly-scroll');if(hs)hs.innerHTML=buildHourlyRow(hours);
+}
+
+function dismissAlert(btn){btn.closest('.alert-item').remove();}
+
+// ─── HTML Builders ───
+function buildHourlyRow(hours){
+  return hours.map(h=>{
+    const sel=state.selectedHour===h.t?' active':'';
+    const sep=h.newDay?`<div class="hour-day-sep">›</div>`:'';
+    return sep+`<div class="hour-card${h.isNow?' active now':''}${sel}" onclick="selectHour('${h.t}')">
+      <div class="hour-time">${h.isNow?'Acum':h.hour}</div>
+      <div class="hour-icon">${iconForTime(h.code,h.isDay!==false)}</div>
+      <div class="hour-temp">${ft(h.temp)}${ftLabel()}</div>
+      ${h.feel!==undefined&&h.feel!==h.temp?`<div class="hour-feel">res.${ft(h.feel)}°</div>`:''}
+      ${h.prec>0?`<div class="hour-prec">${h.prec}mm</div>`:`<div class="hour-prec">${h.precProb>30?h.precProb+'%':''}</div>`}
+    </div>`;
+  }).join('');
+}
+
+function buildDayCards(data){
+  return data.daily.time.map((day,i)=>{
+    const d=data.daily;
+    const label=i===0?'Azi':i===1?'Mâine':shortDay(day);
+    const prec=+(d.precipitation_sum[i]||0).toFixed(1);
+    const precProb=d.precipitation_probability_max?.[i];
+    return`<div class="day-card${i===state.selectedDay?' active':''}" onclick="selectDay(${i})">
+      <div class="day-label-col"><span class="day-name">${label}</span><span class="day-date">${shortDate(day)}</span></div>
+      <div class="day-icon">${icon(d.weathercode[i])}</div>
+      <div>
+        <div class="day-desc">${desc(d.weathercode[i])}</div>
+        <div class="day-prec${prec>0?'':' no-rain'}">${prec>0?'· '+prec+'mm':''}${precProb?` · ${precProb}%`:''}</div>
+      </div>
+      <div class="day-temps"><span class="day-low">${ft(d.temperature_2m_min[i])}°</span><span class="day-high">${ft(d.temperature_2m_max[i])}°</span></div>
+    </div>`;
+  }).join('');
+}
+
+function buildAQICard(aqiData){
+  if(!aqiData?.current)return'';
+  const c=aqiData.current;
+  const aqiVal=Math.round(c.european_aqi||0);
+  const info=getAQIInfo(aqiVal);
+  const pm25=c.pm2_5!=null?c.pm2_5.toFixed(1):'—';
+  const pm10=c.pm10!=null?c.pm10.toFixed(1):'—';
+  const no2=c.nitrogen_dioxide!=null?c.nitrogen_dioxide.toFixed(1):'—';
+  const o3=c.ozone!=null?c.ozone.toFixed(1):'—';
+  const pct=Math.min(100,aqiVal);
+  return`<div class="aqi-card" style="background:${info.bg};border-color:${info.border}">
+    <div class="aqi-header">
+      <div class="aqi-index">
+        <div class="aqi-circle" style="border-color:${info.color};box-shadow:0 0 20px ${info.color}33;color:${info.color}">
+          <div class="aqi-val">${aqiVal}</div>
+          <div class="aqi-lbl-sm">AQI</div>
+        </div>
+        <div class="aqi-info">
+          <div class="aqi-title">Calitate aer · European AQI</div>
+          <div class="aqi-status" style="color:${info.color}">${info.level}</div>
+          <div class="aqi-desc-text">${info.desc}</div>
+        </div>
+      </div>
+    </div>
+    <div class="aqi-bar-row">
+      <div class="aqi-scale">
+        ${[['#4ade80','Bun'],['#86efac','Bun'],['#fbbf24','Mod.'],['#fb923c','Nsat.'],['#f87171','Rău'],['#dc2626','Peric.']].map(([c,l],i)=>`<div class="aqi-scale-seg" style="background:${c};opacity:${pct>i*20&&pct<=(i+1)*20?1:0.3}"></div>`).join('')}
+      </div>
+      <div class="aqi-pointer-wrap">
+        <div class="aqi-pointer" style="left:${pct}%"></div>
+      </div>
+      <div class="aqi-scale-labels"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100+</span></div>
+    </div>
+    <div class="aqi-pollutants">
+      <div class="aqi-poll-item"><div class="aqi-poll-name">PM2.5</div><div class="aqi-poll-val">${pm25}<span class="aqi-poll-unit">μg/m³</span></div></div>
+      <div class="aqi-poll-item"><div class="aqi-poll-name">PM10</div><div class="aqi-poll-val">${pm10}<span class="aqi-poll-unit">μg/m³</span></div></div>
+      <div class="aqi-poll-item"><div class="aqi-poll-name">NO₂</div><div class="aqi-poll-val">${no2}<span class="aqi-poll-unit">μg/m³</span></div></div>
+      <div class="aqi-poll-item"><div class="aqi-poll-name">O₃</div><div class="aqi-poll-val">${o3}<span class="aqi-poll-unit">μg/m³</span></div></div>
+    </div>
+  </div>`;
+}
+
+function buildMoonCard(daily){
+  const moon=getMoonPhase(new Date());
+  const nextFull=getMoonPhase(new Date(Date.now()+14*24*60*60*1000));
+  const illumination=Math.round(Math.abs(Math.sin(moon.phase*Math.PI*2))*100);
+  return`<div class="moon-phase-card">
+    <div class="moon-visual">
+      <div class="moon-svg-wrap" style="font-size:48px;display:flex;align-items:center;justify-content:center">${moon.emoji}</div>
+      <div class="moon-phase-name">${moon.name}</div>
+    </div>
+    <div class="moon-details">
+      <div class="moon-detail-item"><div class="moon-detail-label">Iluminare</div><div class="moon-detail-val">${illumination}%</div></div>
+      <div class="moon-detail-item"><div class="moon-detail-label">Progres ciclu</div><div class="moon-detail-val">${moon.pct}%</div></div>
+      <div class="moon-detail-item"><div class="moon-detail-label">Răsărit</div><div class="moon-detail-val" style="font-size:12px;color:var(--text2)">Variabil</div></div>
+      <div class="moon-detail-item"><div class="moon-detail-label">Ciclu lunar</div><div class="moon-detail-val" style="font-size:12px;color:var(--text2)">29.5 zile</div></div>
+    </div>
+  </div>`;
+}
+
+// ─── Main Render ───
+function render(data,aqiData){
+  setState({data});
+  const cw=data.current;
+  const d=data.daily;
+  const isDay=cw.is_day??1;
+  updateWeatherBg(cw.weathercode||0,isDay);
+
+  const hours=getHourlyFromNow(data);
+  const temp=cw.temperature_2m,feels=cw.apparent_temperature??temp,hum=cw.relative_humidity_2m??0;
+  const pressure=cw.pressure_msl??1013,uv=cw.uv_index??0,ws=cw.windspeed_10m??0,wg=cw.windgusts_10m??0;
+  const dew=cw.dew_point_2m,cloud=cw.cloud_cover;
+  const vis=data.hourly.visibility?Math.round(data.hourly.visibility[0]/1000):10;
+  const visLabel=vis<1?'ceață densă':vis<4?'vizibilitate redusă':vis<10?'moderată':'bună';
+  const uvLabel=uv<3?'Scăzut':uv<6?'Moderat':uv<8?'Ridicat':uv<11?'Foarte ridicat':'Extrem';
+  const uvColor=uv<3?'var(--teal)':uv<6?'var(--gold)':uv<8?'#f08a2e':uv<11?'#ef4444':'#dc2626';
+
+  // Pressure trend
+  let pressureTrend='stabilă',pressureTrendClass='stable';
+  if(data.hourly.pressure_msl){
+    const{currentHourStr}=nowLocalISO();
+    const ni=data.hourly.time.findIndex(t=>t.startsWith(currentHourStr));
+    if(ni>=3){
+      const past=data.hourly.pressure_msl.slice(Math.max(0,ni-3),ni);
+      const fut=data.hourly.pressure_msl.slice(ni,ni+3);
+      const diff=(fut.reduce((a,b)=>a+b,0)/fut.length)-(past.reduce((a,b)=>a+b,0)/past.length);
+      if(diff>1.5){pressureTrend='↑ în creștere';pressureTrendClass='up';}
+      else if(diff<-1.5){pressureTrend='↓ în scădere';pressureTrendClass='down';}
+    }
+  }
+
+  // Outfit
+  let outfit='',tags=[],outfitEmoji='👕';
+  if(temp<=0){outfit='Foarte frig – geacă groasă, căciulă, mănuși, termolenjerie.';tags=['termolenjerie','strat izolant','fular','cizme impermeabile'];outfitEmoji='🧥';}
+  else if(temp<=8){outfit='Răcoare – geacă călduroasă, pulover gros.';tags=['geacă','pulover','long sleeve'];outfitEmoji='🧣';}
+  else if(temp<=16){outfit='Răcoros plăcut – hanorac sau jachetă ușoară.';tags=['hanorac','jeans','adidași'];outfitEmoji='🧥';}
+  else if(temp<=24){outfit='Temperaturi plăcute – tricou, eventual strat subțire seara.';tags=['tricou','blugi','jacket subțire'];outfitEmoji='👕';}
+  else{outfit='Cald sau fierbinte – haine lejere și ușoare. Hidratează-te!';tags=['tricou în','pantaloni scurți','pălărie'];outfitEmoji='😎';}
+  if([51,53,55,61,63,65,80,81,82,95,96,99].includes(cw.weathercode||0)){outfit+=' Nu uita umbrela!';tags.push('☔ umbrelă');}
+  if(ws>25)tags.push('💨 windbreaker');
+  if(uv>=6)tags.push('🧴 SPF 30+');
+  if(hum>=75&&temp>=20)tags.push('💧 hidratare');
+
+  // Precip total
+  const sums=getRemainingPrecip(data);
+  const totalPrecip=+sums.reduce((a,b)=>a+b,0).toFixed(1);
+  const rainyDays=sums.filter(v=>v>=0.1).length;
+  const precipPct=Math.min(100,Math.round(totalPrecip));
+  const PREC=[{max:0,label:'Perioadă secetoasă — nicio precipitație prognozată',emoji:'🏜️'},{max:10,label:'Precipitații foarte reduse',emoji:'🌂'},{max:30,label:'Precipitații ușoare în această perioadă',emoji:'🌂'},{max:60,label:'Precipitații moderate — ține umbrela la îndemână',emoji:'☔'},{max:100,label:'Precipitații abundente prognozate',emoji:'☔'},{max:Infinity,label:'Precipitații foarte abundente — pregătit-te',emoji:'🌊'}];
+  const threshold=PREC.find(t=>totalPrecip<=t.max);
+
+  // Week summary
+  const n=d.time.length;
+  let hotIdx=0,coldIdx=0,rainIdx=0,chanceIdx=0;
+  for(let i=1;i<n;i++){
+    if(d.temperature_2m_max[i]>d.temperature_2m_max[hotIdx])hotIdx=i;
+    if(d.temperature_2m_min[i]<d.temperature_2m_min[coldIdx])coldIdx=i;
+    if((d.precipitation_sum[i]||0)>(d.precipitation_sum[rainIdx]||0))rainIdx=i;
+    if((d.precipitation_probability_max?.[i]||0)>(d.precipitation_probability_max?.[chanceIdx]||0))chanceIdx=i;
+  }
+  const dayLbl=i=>i===0?'azi':shortDay(d.time[i]);
+  const rainMax=+(d.precipitation_sum[rainIdx]||0).toFixed(1);
+  const chanceMax=d.precipitation_probability_max?Math.round(d.precipitation_probability_max[chanceIdx]||0):null;
+  const uvMax=d.uv_index_max?Math.round(d.uv_index_max[0]||0):null;
+
+  const best=findBestWindow(hours);
+  const favSaved=isFav();
+
+  // Build alerts
+  const alertsArr=buildAlerts(hours,cw,d,aqiData);
+  const alertsHtml=alertsArr.length?`<div class="alerts-section" id="alertsSection">${alertsArr.map(a=>`
+    <div class="alert-item ${a.type}">
+      <div class="alert-icon">${a.icon}</div>
+      <div class="alert-body"><div class="alert-title">${a.title}</div>${a.desc?`<div class="alert-desc">${a.desc}</div>`:''}</div>
+      <button class="alert-close" onclick="dismissAlert(this)" title="Închide">×</button>
+    </div>`).join('')}</div>`:'';
+
+  const html=`
+${alertsHtml}
+<div class="header">
+  <div>
+    <div class="location-head">
+      <div class="location-name">${esc(state.city)}</div>
+      <button class="fav-star${favSaved?' saved':''}" onclick="toggleFav()" title="Salvează locația">${favSaved?'★':'☆'}</button>
+    </div>
+    <div class="location-sub">${esc(state.country||'—')} · <span id="liveClock" style="color:var(--text2)">--:--:--</span> · <span style="color:var(--teal);opacity:0.8">actualizat ${new Date(data._fetchedAt||Date.now()).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</span></div>
+  </div>
+  <div class="now-temp">
+    <div class="current-icon">${iconForTime(cw.weathercode||0,isDay)}</div>
+    <div class="current-temp">${ft(temp)}${ftLabel()}</div>
+    <div class="current-cond">${desc(cw.weathercode||0)}</div>
+  </div>
+</div>
+
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">${SVG.thermometer} Se resimte</div>
+    <div class="metric-value">${ft(feels)}<span>${ftLabel()}</span></div>
+    <div class="metric-sub">${feels>temp+1?'mai cald decât arată':feels<temp-1?'mai rece decât arată':'ca temperatura reală'}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">${SVG.droplets} Umiditate</div>
+    <div class="metric-value">${hum}<span>%</span></div>
+    <div class="metric-sub">${hum>80?'Foarte umed':hum>60?'Umed':hum<35?'Uscat':'Confortabil'}</div>
+    <div class="metric-bar"><div class="metric-bar-fill" style="width:${hum}%;background:linear-gradient(90deg,var(--blue),var(--teal))"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">${SVG.gauge} Presiune</div>
+    <div class="metric-value">${Math.round(pressure)}<span>hPa</span></div>
+    <div class="metric-trend ${pressureTrendClass}">${pressureTrend}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">${SVG.sun16} UV Index</div>
+    <div class="metric-value" style="color:${uvColor}">${uv.toFixed?uv.toFixed(1):uv}<span></span></div>
+    <div class="metric-sub">${uvLabel}</div>
+    <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100,uv/11*100)}%;background:${uvColor}"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">${SVG.eye16} Vizibilitate</div>
+    <div class="metric-value">${vis}<span>km</span></div>
+    <div class="metric-sub">${visLabel}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">${SVG.wind16} Rafale vânt</div>
+    <div class="metric-value">${Math.round(wg)}<span>km/h</span></div>
+    <div class="metric-sub">${windDirLabel(cw.winddirection_10m||0)} · ${Math.round(ws)} km/h medie</div>
+  </div>
+  ${dew!=null?`<div class="metric-card">
+    <div class="metric-label">${SVG.droplets} Punct de rouă</div>
+    <div class="metric-value">${ft(dew)}<span>${ftLabel()}</span></div>
+    <div class="metric-sub">${dew>=(state.unit==='F'?68:20)?'Disconfort umed':dew>=(state.unit==='F'?60:15)?'Umed plăcut':'Aer uscat'}</div>
+  </div>`:''}
+  ${cloud!=null?`<div class="metric-card">
+    <div class="metric-label">${SVG.cloud16} Acoperire nori</div>
+    <div class="metric-value">${Math.round(cloud)}<span>%</span></div>
+    <div class="metric-sub">${cloud>80?'Cer acoperit':cloud>40?'Parțial noros':'Cer senin'}</div>
+    <div class="metric-bar"><div class="metric-bar-fill" style="width:${cloud}%;background:linear-gradient(90deg,rgba(148,163,184,0.6),rgba(148,163,184,0.3))"></div></div>
+  </div>`:''}
+</div>
+
+<div class="outfit-card">
+  <div class="outfit-emoji">${outfitEmoji}</div>
+  <div>
+    <div class="outfit-title">Ce port azi?</div>
+    <div class="outfit-text">${outfit}</div>
+    <div class="outfit-tags">${tags.map(t=>`<span class="outfit-tag">${t}</span>`).join('')}</div>
+  </div>
+</div>
+
+<div class="section-label">Prognoză orară · Următoarele 24h</div>
+${best?`<div class="best-window">✦ <strong>Fereastra ideală:</strong> ${best.start}–${best.end}, ${ft(best.temp)}${ftLabel()}, precipitații ${best.prec}mm</div>`:''}
+<div class="hourly-scroll" id="hourlyScroll">${buildHourlyRow(hours)}</div>
+
+<div class="week-summary-card">
+  <div class="week-summary-title">Rezumat 10 zile</div>
+  <div class="week-summary-grid">
+    <div><div class="week-summary-label"><span class="wsi-icon">☀️</span> Cel mai cald</div><div class="week-summary-value hot">${ft(d.temperature_2m_max[hotIdx])}${ftLabel()}</div><div class="week-summary-day">${dayLbl(hotIdx)}</div></div>
+    <div><div class="week-summary-label"><span class="wsi-icon">❄️</span> Cel mai frig</div><div class="week-summary-value cold">${ft(d.temperature_2m_min[coldIdx])}${ftLabel()}</div><div class="week-summary-day">${dayLbl(coldIdx)}</div></div>
+    <div><div class="week-summary-label"><span class="wsi-icon">🌧️</span> Cea mai ploioasă</div><div class="week-summary-value rain">${rainMax} mm</div><div class="week-summary-day">${dayLbl(rainIdx)}</div></div>
+    ${chanceMax!==null?`<div><div class="week-summary-label"><span class="wsi-icon">💧</span> Max. șanse ploaie</div><div class="week-summary-value chance">${chanceMax}%</div><div class="week-summary-day">${dayLbl(chanceIdx)}</div></div>`:''}
+    ${uvMax!==null?`<div><div class="week-summary-label"><span class="wsi-icon">🔆</span> Max UV</div><div class="week-summary-value" style="color:${uvColor}">${uvMax}</div><div class="week-summary-day">azi</div></div>`:''}
+  </div>
+</div>
+
+<div class="section-label">Prognoză 10 zile</div>
+<div class="days-grid" id="daysGrid">${buildDayCards(data)}</div>
+
+<div class="precip-total-card">
+  <div class="precip-total-icon">${threshold.emoji}</div>
+  <div>
+    <div class="precip-total-label">Precipitații rămase · 10 zile</div>
+    <div class="precip-total-value">${totalPrecip}<span>mm</span></div>
+    <div class="precip-total-sub">${threshold.label}</div>
+  </div>
+  <div>
+    <div class="precip-rainy-days"><strong>${rainyDays}</strong> zi${rainyDays!==1?'le':''} ${rainyDays!==1?'ploioase':'ploioasă'}</div>
+    <div class="precip-bar-wrap"><div class="precip-bar-fill" id="precipBarFill" style="width:0%"></div></div>
+    <div class="precip-bar-label">${precipPct}% dintr-o perioadă ploioasă intensă (100mm)</div>
+  </div>
+</div>
+
+${buildAQICard(aqiData)}
+
+<div class="hourly-chart-card">
+  <div class="chart-title hourly-chart-title">Orar — Azi (temperatură &amp; precipitații)</div>
+  <div class="hourly-chart-wrap"><canvas id="hourlyChart"></canvas></div>
+</div>
+
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Precipitații rămase · 10 zile (mm)</div>
+    <div class="chart-wrap"><canvas id="precipChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Interval temperaturi · 10 zile</div>
+    <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+  </div>
+</div>
+
+<div class="wind-chart-card">
+  <div class="wind-chart-header">
+    <div>
+      <div class="chart-title" style="margin-bottom:4px">Viteza vântului · 24h</div>
+      <div class="wind-chart-subtitle">Linia punctată galbenă = viteza actuală</div>
+    </div>
+    <div class="wind-now-badge">
+      <div class="wind-compass" id="windCompass" style="transform:rotate(${cw.winddirection_10m||0}deg)">↑</div>
+      <div>
+        <div class="wind-now-val">${Math.round(ws)} <span>km/h</span></div>
+        <div class="wind-now-dir">${windDirLabel(cw.winddirection_10m||0)}</div>
+      </div>
+    </div>
+  </div>
+  <div class="wind-chart-wrap"><canvas id="windChart"></canvas></div>
+</div>
+
+<div class="sun-section">
+  <div class="sun-info" style="align-items:flex-start">
+    <div class="sun-label">Răsărit</div>
+    <div class="sun-time sun-rise-time">${formatTime(d.sunrise[0])}</div>
+  </div>
+  <div class="sun-arc-wrap">${drawSunArc(d.sunrise[0],d.sunset[0])}</div>
+  <div class="sun-info" style="align-items:flex-end">
+    <div class="sun-label">Apus</div>
+    <div class="sun-time sun-set-time">${formatTime(d.sunset[0])}</div>
+    <div class="sun-duration">${daylight(d.sunrise[0],d.sunset[0])}</div>
+  </div>
+</div>
+
+${buildMoonCard(d)}
+
+<div class="windy-section">
+  <div class="section-label">Hartă radar &amp; precipitații live</div>
+  <div class="windy-card">
+    <div class="windy-card-header">
+      <div class="windy-card-title"><div class="windy-dot"></div> Ventusky · Radar Live</div>
+    </div>
+    <div class="windy-frame-wrap">
+      <div class="windy-loader" id="windyLoader"><div class="spinner" style="border-top-color:var(--teal)"></div><div class="windy-loader-text">Se încarcă harta radar…</div></div>
+      <iframe id="ventuskyFrame" src="https://embed.ventusky.com/?p=${state.lat};${state.lon};7&l=radar" allowfullscreen onload="document.getElementById('windyLoader')?.classList.add('hidden')" style="width:100%;height:100%;border:none;display:block;border-radius:0 0 22px 22px"></iframe>
+    </div>
+  </div>
+</div>`;
+
+  document.getElementById('app').innerHTML=html;
+  startClock();
+  renderFavs();
+  setTimeout(()=>{
+    const fill=document.getElementById('precipBarFill');if(fill)fill.style.width=precipPct+'%';
+    drawCharts(data,hours,cw);
+  },80);
+}
+
+// ─── Init ───
+if(PERF.fancy&&!PERF.rm){
+  let raf=false,mx=0,my=0;
+  window.addEventListener('mousemove',e=>{
+    mx=(e.clientX/window.innerWidth)-0.5;my=(e.clientY/window.innerHeight)-0.5;
+    if(raf)return;raf=true;
+    requestAnimationFrame(()=>{
+      const bg=document.getElementById('weather-bg');
+      if(bg)bg.style.transform=`translate(${mx*-16}px,${my*-12}px) scale(1.05)`;
+      raf=false;
+    });
+  },{passive:true});
+}
+
+loadWeather();
+renderFavs();
+startClock();
+</script>
+</body>
+</html>
